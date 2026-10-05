@@ -23,7 +23,7 @@ use crate::storage::models::{
 };
 
 /// Steps returned by the model are rejected above this count (the model is told the same limit).
-const MAX_REFINED_STEPS: usize = 120;
+const MAX_REFINED_STEPS: usize = 262144;
 
 /// Result of a full documentation run.
 pub struct PipelineOutput {

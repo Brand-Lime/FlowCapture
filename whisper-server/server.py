@@ -279,6 +279,7 @@ async def handle_transcription(
         if include_segments:
             result["segments"] = segments_data
 
+        print(result["segments"])
         return result
 
     except Exception as e:
@@ -301,7 +302,7 @@ async def transcribe_v1(
     temperature: Optional[float] = Form(None),
     prompt: Optional[str] = Form(None),
 ):
-    return await handle_transcription(file, model, language, temperature, prompt)
+    return await handle_transcription(file, model, language, temperature, prompt, include_segments=True)
 
 
 # Endpoint OpenAI alternativo: /audio/transcriptions
@@ -313,7 +314,7 @@ async def transcribe_direct(
     temperature: Optional[float] = Form(None),
     prompt: Optional[str] = Form(None),
 ):
-    return await handle_transcription(file, model, language, temperature, prompt)
+    return await handle_transcription(file, model, language, temperature, prompt, include_segments=True)
 
 
 # Endpoint con segmenti temporizzati: /v1/audio/transcriptions/segments

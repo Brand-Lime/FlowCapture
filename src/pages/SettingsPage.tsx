@@ -754,14 +754,14 @@ export function SettingsPage() {
               <button
                 type="button"
                 className="settings-preset"
-                onClick={() => applyPreset({ temperature: 0.3, top_p: 0.95, max_tokens: 4096 })}
+                onClick={() => applyPreset({ temperature: 0.3, top_p: 0.95, max_tokens: 32768 })}
               >
                 Preset LM Studio / OpenAI
               </button>
               <button
                 type="button"
                 className="settings-preset"
-                onClick={() => applyPreset({ options: { temperature: 0.2, num_ctx: 8192 } })}
+                onClick={() => applyPreset({ options: { temperature: 0.2, num_ctx: 32768 } })}
               >
                 Preset Ollama
               </button>
