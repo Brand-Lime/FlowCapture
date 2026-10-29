@@ -27,3 +27,4 @@ src-tauri/target
 *.njsproj
 *.sln
 *.sw?
+dist-extensions

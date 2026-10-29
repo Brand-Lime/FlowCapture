@@ -59,3 +59,5 @@ uiautomation = "0.25"
 # Same versions Tauri/wry use, so the WebView2 handles from `with_webview` share their types.
 webview2-com = "0.38"
 windows = "0.61"
+# Installer and auto-update (Velopack fork, pre-launch update window): see src/updater.rs.
+velopack = { path = "vendor/velopack" }

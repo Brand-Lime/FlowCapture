@@ -28,6 +28,7 @@ import { useSessionTitle } from "@/hooks/useSessionTitle";
 import { useAiJob } from "@/context/AiJobContext";
 import { describeCostEstimate, describeUsage } from "@/lib/cost";
 import { useSessionsContext } from "@/context/SessionsContext";
+import { useRecordingContext } from "@/context/RecordingContext";
 import {
   api,
   type DuplicateScreenshotGroup,
@@ -62,6 +63,9 @@ export function SessionPage() {
   const navigate = useNavigate();
   const { refreshSessions } = useSessionsContext();
   const { activeJob, startJob, cancelJob } = useAiJob();
+  const { transcribingSessionIds } = useRecordingContext();
+  // Transcription started automatically when the recording ended.
+  const autoTranscribing = transcribingSessionIds.includes(sessionId);
 
   const [session, setSession] = useState<Session | null>(null);
   const [events, setEvents] = useState<SessionEvent[]>([]);
@@ -221,6 +225,15 @@ export function SessionPage() {
     }
   }, [activeJob?.sessionId, activeJob?.isDone, activeJob?.result, sessionId]);
 
+  // Reload the transcript once the automatic transcription is over.
+  const wasAutoTranscribing = useRef(autoTranscribing);
+  useEffect(() => {
+    if (wasAutoTranscribing.current && !autoTranscribing) {
+      refresh({ syncMarkdown: false }).catch(() => undefined);
+    }
+    wasAutoTranscribing.current = autoTranscribing;
+  }, [autoTranscribing, refresh]);
+
   const [selectedVideoMode, setSelectedVideoMode] = useState<"full" | "timelapse">("full");
 
   const fullVideoSrc = useMemo(() => {
@@ -310,13 +323,86 @@ export function SessionPage() {
     };
   }, [sessionId, session?.video_path, session?.full_video_path, session?.ended_at]);
 
+  /**
+   * Checks that generating makes sense before asking for confirmation: the generation is never
+   * started automatically and costs money, so a non expert user is stopped (or warned) when the
+   * result would be empty or incomplete.
+   */
   async function handleGenerate() {
+    if (!session) return;
+    setError(null);
+
+    if (activeJob && !activeJob.isDone && activeJob.sessionId !== sessionId) {
+      setConfirmModal({
+        isOpen: true,
+        title: "C'è già una generazione in corso",
+        message: `Si può generare una documentazione alla volta. È in corso quella di "${activeJob.sessionTitle}": attendi che finisca.`,
+        confirmLabel: "Vai alla sessione",
+        cancelLabel: "Chiudi",
+        kind: "primary",
+        action: () => navigate(`/sessions/${activeJob.sessionId}`),
+      });
+      return;
+    }
+    if (session.status === "recording") {
+      setError("La sessione è ancora in registrazione: fermala prima di generare la documentazione.");
+      return;
+    }
+    if (screenshots.length === 0 && events.length === 0) {
+      setError(
+        "Questa sessione non contiene nessun passaggio registrato (né click né screenshot): non c'è niente da documentare. Registra di nuovo il flusso di lavoro.",
+      );
+      return;
+    }
+
+    const providers = await api.listProviders().catch(() => null);
+    if (providers && !providers.some((provider) => provider.enabled === 1)) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Nessun servizio AI configurato",
+        message:
+          "Per generare la documentazione serve un provider AI (es. OpenAI, Claude, Gemini) con la sua chiave API.\n\nConfiguralo nelle Impostazioni e poi torna qui.",
+        confirmLabel: "Apri Impostazioni",
+        cancelLabel: "Annulla",
+        kind: "primary",
+        action: () => navigate("/settings"),
+      });
+      return;
+    }
+
+    if (transcribing || autoTranscribing) {
+      setConfirmModal({
+        isOpen: true,
+        title: "Trascrizione audio in corso",
+        message:
+          "L'audio di questa sessione è ancora in fase di trascrizione. Se generi adesso, la documentazione non userà le spiegazioni che hai dato a voce.\n\nConviene attendere la fine della trascrizione (pochi minuti).",
+        confirmLabel: "Genera comunque",
+        cancelLabel: "Aspetta",
+        kind: "warning",
+        action: () => confirmGenerate(),
+      });
+      return;
+    }
+
+    const audioNotTranscribed = Boolean(session.audio_path) && !session.audio_transcript?.trim();
+    await confirmGenerate(
+      audioNotTranscribed
+        ? "⚠️ L'audio registrato non è ancora stato trascritto: la documentazione non userà le tue spiegazioni a voce. Per usarle annulla, apri la scheda \"Audio\" e avvia la trascrizione."
+        : undefined,
+    );
+  }
+
+  async function confirmGenerate(note?: string) {
     let estimateText: string;
     try {
       estimateText = describeCostEstimate(await api.estimateGenerationCost(sessionId));
     } catch (err) {
       // No provider configured or session not readable: the generation itself reports the real error.
       estimateText = `Stima dei costi non disponibile (${String(err)}).`;
+    }
+
+    if (note) {
+      estimateText = `${note}\n\n${estimateText}`;
     }
 
     const hasDocumentation = Boolean(session?.documentation_md && session.documentation_md.trim().length > 0);
@@ -648,6 +734,16 @@ export function SessionPage() {
           <button type="button" className="error-card-close" onClick={() => setError(null)} title="Chiudi messaggio di errore">
             ✕
           </button>
+        </div>
+      ) : null}
+
+      {autoTranscribing ? (
+        <div className="warn-card info">
+          <span className="pulse" style={{ width: 8, height: 8, marginTop: 5 }} />
+          <div className="warn-card-body">
+            <strong>Trascrizione dell'audio in corso…</strong> Attendi che finisca prima di generare la
+            documentazione, così verranno usate anche le tue spiegazioni a voce.
+          </div>
         </div>
       ) : null}
 

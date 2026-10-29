@@ -1,0 +1,75 @@
+# Copy of `src/lib-rust` from the Velopack fork (C:\Pro\CSDigitalOrder\Velopack), which adds the
+# pre-launch update window. Sources are refreshed by `scripts/sync-velopack.ps1`; this manifest is
+# kept by hand because the fork's one inherits the versions from the Velopack workspace
+# (`[workspace.dependencies]` in the fork's root Cargo.toml). Cargo.upstream.toml is the fork's
+# manifest at the last sync.
+
+[package]
+name = "velopack"
+version = "0.0.0-local"
+edition = "2021"
+rust-version = "1.75"
+license = "MIT"
+description = "Velopack client library (local copy of the fork with the pre-launch update check)"
+publish = false
+
+[features]
+default = []
+file-logging = ["log-panics", "simplelog", "time"]
+public-utils = []
+
+[lib]
+name = "velopack"
+path = "src/lib.rs"
+
+[dependencies]
+log = "0.4"
+anyhow = "1.0"
+ureq = "3.2"
+url = "2.5"
+semver = "1.0"
+xml = "1.2"
+derivative = "2.2"
+glob = "0.3"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+zip = { version = "8.0", default-features = false, features = ["deflate"] }
+thiserror = "2.0"
+lazy_static = "1.5"
+regex = "1.12"
+normpath = "1.5"
+bitflags = "2.11"
+rand = "0.10"
+sha1 = "0.11"
+sha2 = "0.11"
+uuid = { version = "1.21", features = ["v4", "fast-rng", "macro-diagnostics"] }
+
+# file logging
+log-panics = { version = "2.1.0", optional = true }
+simplelog = { version = "0.12", optional = true }
+time = { version = "0.3", optional = true }
+
+[target.'cfg(windows)'.dependencies]
+windows = { version = "0.62", features = [
+    "Win32_Foundation",
+    "Win32_Storage",
+    "Win32_Storage_FileSystem",
+    "Win32_Security",
+    "Win32_System_IO",
+    "Win32_System_Threading",
+    "Win32_UI_WindowsAndMessaging",
+    "Win32_UI_Shell",
+    "Win32_System_Kernel",
+    "Win32_System_Registry",
+    "Win32_System_LibraryLoader",
+    "Win32_Graphics_Gdi",
+    "Win32_Graphics_Dwm",
+    "Wdk",
+    "Wdk_System",
+    "Wdk_System_Threading",
+] }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+wait-timeout = "0.2"
+waitpid-any = "0.3"

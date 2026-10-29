@@ -1,7 +1,8 @@
 use std::collections::{HashMap, HashSet};
 use std::fs::File;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
 
 use anyhow::{Context, Result};
 use chrono::Utc;
@@ -56,12 +57,87 @@ pub(crate) trait BundleSink {
     fn add_bytes(&mut self, entry: &str, bytes: &[u8]) -> Result<()>;
 }
 
-struct ZipSink {
-    zip: ZipWriter<File>,
+struct ZipSink<W: Write + Seek> {
+    zip: ZipWriter<W>,
     written: HashSet<String>,
 }
 
-impl BundleSink for ZipSink {
+/// File that adds the bytes written to it to a counter (progress of a long copy).
+struct CountingFile<'a> {
+    file: File,
+    counter: Option<&'a AtomicU64>,
+}
+
+impl Write for CountingFile<'_> {
+    fn write(&mut self, buf: &[u8]) -> std::io::Result<usize> {
+        let written = self.file.write(buf)?;
+        if let Some(counter) = self.counter {
+            counter.fetch_add(written as u64, Ordering::Relaxed);
+        }
+        Ok(written)
+    }
+
+    fn flush(&mut self) -> std::io::Result<()> {
+        self.file.flush()
+    }
+}
+
+impl Seek for CountingFile<'_> {
+    fn seek(&mut self, pos: SeekFrom) -> std::io::Result<u64> {
+        self.file.seek(pos)
+    }
+}
+
+/// Bundle entries collected without writing anything (the mirror plans its copy with them).
+#[derive(Default)]
+pub(crate) struct PlanSink {
+    pub files: Vec<(String, PathBuf)>,
+    pub bytes: Vec<(String, Vec<u8>)>,
+    seen: HashSet<String>,
+}
+
+impl BundleSink for PlanSink {
+    fn add_file(&mut self, entry: &str, source: &Path) -> Result<()> {
+        if self.seen.insert(entry.to_string()) {
+            self.files.push((entry.to_string(), source.to_path_buf()));
+        }
+        Ok(())
+    }
+
+    fn add_bytes(&mut self, entry: &str, bytes: &[u8]) -> Result<()> {
+        if self.seen.insert(entry.to_string()) {
+            self.bytes.push((entry.to_string(), bytes.to_vec()));
+        }
+        Ok(())
+    }
+}
+
+/// Writes a `.flowcapture` archive from planned entries plus `manifest.json` (same content as
+/// `export_session_bundle`), adding the bytes written to `written_bytes`.
+pub(crate) fn write_bundle_archive(
+    target_path: &Path,
+    plan: &PlanSink,
+    manifest: &[u8],
+    written_bytes: Option<&AtomicU64>,
+) -> Result<()> {
+    let file = File::create(target_path)
+        .with_context(|| format!("Failed to create export bundle at {}", target_path.display()))?;
+    let mut sink = ZipSink {
+        zip: ZipWriter::new(CountingFile { file, counter: written_bytes }),
+        written: HashSet::new(),
+    };
+    for (entry, source) in &plan.files {
+        sink.add_file(entry, source)?;
+    }
+    for (entry, bytes) in &plan.bytes {
+        sink.add_bytes(entry, bytes)?;
+    }
+    sink.add_bytes("manifest.json", manifest)?;
+    sink.zip.finish()?;
+    Ok(())
+}
+
+impl<W: Write + Seek> BundleSink for ZipSink<W> {
     fn add_file(&mut self, entry: &str, source: &Path) -> Result<()> {
         add_file(&mut self.zip, &mut self.written, entry, source)
     }
@@ -261,22 +337,122 @@ pub(crate) fn write_session_bundle(
     Ok(manifest)
 }
 
+/// Where an imported session comes from: a `.flowcapture` archive, or a session folder written by
+/// the sessions folder mirror (same entries, unzipped).
+enum BundleSource {
+    Zip(ZipArchive<File>),
+    Dir(PathBuf),
+}
+
+impl BundleSource {
+    fn open(path: &Path) -> Result<Self> {
+        // The folder itself, or its manifest.json picked in a file dialog.
+        let folder = if path.is_dir() {
+            Some(path.to_path_buf())
+        } else if path.file_name().is_some_and(|name| name.eq_ignore_ascii_case("manifest.json")) {
+            path.parent().map(Path::to_path_buf)
+        } else {
+            None
+        };
+        if let Some(folder) = folder {
+            if !folder.join("manifest.json").is_file() {
+                anyhow::bail!(
+                    "La cartella {} non contiene manifest.json: non è una cartella di sessione FlowCapture",
+                    folder.display()
+                );
+            }
+            return Ok(Self::Dir(folder));
+        }
+        let file = File::open(path)
+            .with_context(|| format!("Failed to open import bundle at {}", path.display()))?;
+        let zip = ZipArchive::new(file).with_context(|| "Failed to read zip archive")?;
+        Ok(Self::Zip(zip))
+    }
+
+    fn read_manifest(&mut self) -> Result<String> {
+        let mut manifest = String::new();
+        match self {
+            Self::Zip(zip) => {
+                zip.by_name("manifest.json")
+                    .context("Missing manifest.json in archive: invalid or unsupported FlowCapture bundle")?
+                    .read_to_string(&mut manifest)?;
+            }
+            Self::Dir(root) => {
+                manifest = std::fs::read_to_string(root.join("manifest.json"))?;
+            }
+        }
+        Ok(manifest)
+    }
+
+    /// Copies every entry to the path `place` returns for it (`None` = skip the entry).
+    fn extract(&mut self, place: impl Fn(&str) -> Option<PathBuf>) -> Result<()> {
+        let copy_to = |entry_name: &str, input: &mut dyn Read| -> Result<()> {
+            let Some(out_path) = place(entry_name) else {
+                if !entry_name.eq_ignore_ascii_case("manifest.json") {
+                    crate::logger::info("bundle", &format!("Skipping unsafe or unknown archive entry: {entry_name}"));
+                }
+                return Ok(());
+            };
+            if let Some(parent) = out_path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let mut out_file = File::create(&out_path)?;
+            std::io::copy(input, &mut out_file)?;
+            Ok(())
+        };
+
+        match self {
+            Self::Zip(zip) => {
+                for i in 0..zip.len() {
+                    let mut entry = zip.by_index(i)?;
+                    if entry.is_dir() {
+                        continue;
+                    }
+                    let entry_name = entry.name().to_string();
+                    copy_to(&entry_name, &mut entry)?;
+                }
+            }
+            Self::Dir(root) => {
+                // Only the bundle folders: the session folder also holds documentation.md and
+                // the owner marker, which are not part of the bundle.
+                for dir in ["screenshots", "media", "exports"] {
+                    let dir = root.join(dir);
+                    if !dir.is_dir() {
+                        continue;
+                    }
+                    for path in walk_files(&dir)? {
+                        // Half-written copies of the mirror are not session files.
+                        if path.extension().is_some_and(|ext| ext == "partial") {
+                            continue;
+                        }
+                        let Ok(relative) = path.strip_prefix(root.as_path()) else {
+                            continue;
+                        };
+                        let entry_name = relative
+                            .components()
+                            .map(|part| part.as_os_str().to_string_lossy())
+                            .collect::<Vec<_>>()
+                            .join("/");
+                        let mut input = File::open(&path)
+                            .with_context(|| format!("Cannot read {}", path.display()))?;
+                        copy_to(&entry_name, &mut input)?;
+                    }
+                }
+            }
+        }
+        Ok(())
+    }
+}
+
+/// Imports a `.flowcapture` archive or a session folder of the sessions folder mirror.
 pub fn import_session_bundle(
     db: &Database,
     archive_path: &Path,
 ) -> Result<Session> {
-    let file = File::open(archive_path)
-        .with_context(|| format!("Failed to open import bundle at {}", archive_path.display()))?;
-    let mut zip = ZipArchive::new(file)
-        .with_context(|| "Failed to read zip archive")?;
+    let mut source = BundleSource::open(archive_path)?;
 
     // 1. Read manifest.json
-    let mut manifest_file = zip
-        .by_name("manifest.json")
-        .context("Missing manifest.json in archive: invalid or unsupported FlowCapture bundle")?;
-    let mut manifest_str = String::new();
-    manifest_file.read_to_string(&mut manifest_str)?;
-    drop(manifest_file);
+    let manifest_str = source.read_manifest()?;
 
     let manifest: SessionBundleManifest = serde_json::from_str(&manifest_str)
         .context("Failed to parse bundle manifest.json")?;
@@ -302,15 +478,8 @@ pub fn import_session_bundle(
     // 3. Extract all files from zip into target session directory.
     //    Entry names come from an untrusted archive: only plain file names directly under the
     //    known folders are accepted, so "screenshots/../../evil.exe" cannot escape the session dir.
-    for i in 0..zip.len() {
-        let mut entry = zip.by_index(i)?;
-        let entry_name = entry.name().to_string();
-
-        if entry.is_dir() {
-            continue;
-        }
-
-        let target_dir = if let Some(rest) = entry_name.strip_prefix("screenshots/") {
+    source.extract(|entry_name| {
+        if let Some(rest) = entry_name.strip_prefix("screenshots/") {
             safe_file_name(rest).map(|name| target_screenshots_dir.join(name))
         } else if let Some(rest) = entry_name.strip_prefix("media/") {
             safe_file_name(rest).map(|name| target_session_dir.join(name))
@@ -318,21 +487,8 @@ pub fn import_session_bundle(
             safe_relative_path(rest).map(|relative| target_exports_dir.join(relative))
         } else {
             None
-        };
-
-        let Some(out_path) = target_dir else {
-            if !entry_name.eq_ignore_ascii_case("manifest.json") {
-                crate::logger::info("bundle", &format!("Skipping unsafe or unknown archive entry: {entry_name}"));
-            }
-            continue;
-        };
-
-        if let Some(parent) = out_path.parent() {
-            std::fs::create_dir_all(parent)?;
         }
-        let mut out_file = File::create(&out_path)?;
-        std::io::copy(&mut entry, &mut out_file)?;
-    }
+    })?;
 
     // 4. Map screenshot IDs and local paths
     let mut screenshot_id_map: HashMap<String, String> = HashMap::new();
@@ -488,8 +644,8 @@ pub fn import_session_bundle(
 
 /// Streams a file into the archive. Already-compressed media (images, video, audio) is stored
 /// as-is: deflating it again costs time and saves almost nothing. Each entry is written once.
-fn add_file(
-    zip: &mut ZipWriter<File>,
+fn add_file<W: Write + Seek>(
+    zip: &mut ZipWriter<W>,
     written: &mut HashSet<String>,
     entry_name: &str,
     source: &Path,

@@ -440,3 +440,59 @@
   width: 52px; padding: 3px 6px; border-radius: 6px; border: 1px solid var(--hair);
   background: var(--surface); color: var(--text); font-family: var(--mono); font-size: 12px;
 }
+
+/* ---------- Warnings that guide the user (microphone, AI provider, sessions folder) ---------- */
+.warn-card {
+  margin-top: 14px; padding: 12px 14px; border: 1px solid rgba(245,158,11,.45); border-radius: 8px;
+  background: rgba(245,158,11,.08); color: #fbbf24; font-size: 12.5px; line-height: 1.45;
+  display: flex; align-items: flex-start; gap: 10px;
+}
+.warn-card .warn-card-body { flex: 1; color: var(--text-2); }
+.warn-card .warn-card-body strong { color: #fbbf24; }
+.warn-card .warn-card-actions { display: flex; gap: 8px; flex-shrink: 0; align-items: center; }
+.warn-card.danger { border-color: rgba(255,138,138,.45); background: rgba(255,100,100,.06); }
+.warn-card.danger .warn-card-body strong { color: var(--rose); }
+.warn-card.info { border-color: var(--ice-12); background: rgba(108,198,255,.06); }
+.warn-card.info .warn-card-body strong { color: var(--ice); }
+
+/* ---------- Microphone test ---------- */
+.mic-test { display: flex; flex-direction: column; gap: 8px; }
+.mic-test-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.mic-meter { width: 180px; height: 8px; border-radius: 4px; background: rgba(255,255,255,.08); overflow: hidden; }
+.mic-meter i { display: block; height: 100%; background: var(--mint); transition: width 60ms linear; }
+.mic-test-hint { font-size: 12px; color: var(--text-2); }
+.mic-test-result { font-size: 12.5px; line-height: 1.45; display: flex; flex-direction: column; gap: 6px; }
+.mic-test-result.ok { color: var(--mint); }
+.mic-test-result.warn { color: #fbbf24; }
+.mic-test-result.error { color: var(--rose); }
+.mic-test-result audio { height: 32px; max-width: 320px; }
+
+/* ---------- Recording HUD warnings ---------- */
+.hud-warning {
+  margin: 0 0 10px; padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(255,138,138,.45);
+  background: rgba(255,100,100,.1); color: var(--rose); font-size: 12.5px; line-height: 1.4;
+}
+
+/* ---------- Background copy to the sessions folder ---------- */
+.mirror-sync-indicator {
+  position: fixed; left: 16px; bottom: 16px; z-index: 9000; display: flex; flex-direction: column; gap: 6px;
+  width: 340px; padding: 10px 12px; border-radius: 8px; border: 1px solid var(--hair-2);
+  background: rgba(14,19,21,.95); color: var(--text-2); font-size: 12px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.mirror-sync-head { display: flex; align-items: center; gap: 8px; color: var(--text); }
+.mirror-progress { display: flex; flex-direction: column; gap: 5px; margin-top: 4px; font-size: 12px; color: var(--text-2); }
+.mirror-progress-title { color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mirror-progress-note { font-size: 11.5px; color: var(--dim); }
+.mirror-progress-bar { position: relative; height: 6px; border-radius: 3px; background: var(--hair-2); overflow: hidden; }
+.mirror-progress-bar i { position: absolute; left: 0; top: 0; bottom: 0; width: 0; background: var(--mint); transition: width .4s ease; }
+.mirror-progress-bar.indeterminate i { width: 35%; animation: mirror-progress-slide 1.2s ease-in-out infinite; }
+@keyframes mirror-progress-slide { from { left: -35%; } to { left: 100%; } }
+
+/* ---------- Browser extension status ---------- */
+.ext-list { list-style: none; margin: 8px 0 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.ext-list li { display: flex; gap: 12px; font-size: 12.5px; }
+.ext-list .ext-name { min-width: 140px; color: var(--text); }
+.ext-list .ext-state.active { color: var(--mint); }
+.ext-list .ext-state.disabled { color: #fbbf24; }
+.ext-list .ext-state.missing { color: var(--rose); }
+.ext-list .ext-state.unused { color: var(--dim); }

@@ -1,3 +1,5 @@
+import type { ReactNode } from "react";
+
 export interface ConfirmModalProps {
   isOpen: boolean;
   title: string;
@@ -8,6 +10,10 @@ export interface ConfirmModalProps {
   onConfirm: () => void | Promise<void>;
   onCancel: () => void;
   isLoading?: boolean;
+  /** Only the confirm button: the dialog cannot be dismissed (no cancel, no click outside). */
+  hideCancel?: boolean;
+  /** Extra content under the message (e.g. a progress bar). */
+  children?: ReactNode;
 }
 
 export function ConfirmModal({
@@ -20,6 +26,8 @@ export function ConfirmModal({
   onConfirm,
   onCancel,
   isLoading = false,
+  hideCancel = false,
+  children,
 }: ConfirmModalProps) {
   if (!isOpen) return null;
 
@@ -40,7 +48,7 @@ export function ConfirmModal({
         padding: "16px",
       }}
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isLoading) {
+        if (e.target === e.currentTarget && !isLoading && !hideCancel) {
           onCancel();
         }
       }}
@@ -84,6 +92,7 @@ export function ConfirmModal({
             <p style={{ margin: 0, fontSize: "13.5px", color: "var(--text-2, #94a3b8)", lineHeight: "1.55", whiteSpace: "pre-line" }}>
               {message}
             </p>
+            {children}
           </div>
         </div>
 
@@ -94,6 +103,7 @@ export function ConfirmModal({
             onClick={onCancel}
             disabled={isLoading}
             style={{
+              display: hideCancel ? "none" : undefined,
               padding: "7px 14px",
               fontSize: "13px",
               borderRadius: "6px",

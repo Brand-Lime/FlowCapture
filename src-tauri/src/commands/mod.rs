@@ -1882,24 +1882,91 @@ pub fn get_session_mirror_dir(state: State<'_, Arc<AppState>>) -> Result<Option<
 }
 
 /// Sets (or clears, with `None`) the sessions folder and copies every session into it.
-/// Returns how many sessions are being written.
+/// Returns how many sessions are being written. Async: a network folder can take long to answer.
 #[tauri::command]
-pub fn set_session_mirror_dir(
+pub async fn set_session_mirror_dir(
     state: State<'_, Arc<AppState>>,
     path: Option<String>,
 ) -> Result<usize, String> {
-    let value = path.map(|p| p.trim().to_string()).unwrap_or_default();
-    if !value.is_empty() {
-        std::fs::create_dir_all(&value).map_err(|err| format!("Cartella non utilizzabile: {err}"))?;
+    let state = Arc::clone(&state);
+    tauri::async_runtime::spawn_blocking(move || {
+        let value = path.map(|p| p.trim().to_string()).unwrap_or_default();
+        if !value.is_empty() {
+            std::fs::create_dir_all(&value).map_err(|err| format!("Cartella non utilizzabile: {err}"))?;
+        }
+        state
+            .db
+            .set_setting(crate::storage::mirror::MIRROR_DIR_SETTING, &value)
+            .map_err(|err| err.to_string())?;
+        if value.is_empty() {
+            return Ok(0);
+        }
+        crate::storage::mirror::sync_all(&state.db, &state.mirror).map_err(|err| err.to_string())
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+#[derive(serde::Serialize)]
+pub struct MirrorDirCheck {
+    pub configured: bool,
+    pub reachable: bool,
+    pub path: Option<String>,
+}
+
+/// Whether the sessions folder can be reached (checked at startup: a network share needs the VPN).
+/// `configured` is false when no folder is set or writing into it is turned off.
+/// Gives up after a few seconds: an unreachable share can take a minute to fail.
+#[tauri::command]
+pub async fn check_session_mirror_dir(state: State<'_, Arc<AppState>>) -> Result<MirrorDirCheck, String> {
+    let Some(root) = crate::storage::mirror::mirror_write_root(&state.db) else {
+        return Ok(MirrorDirCheck { configured: false, reachable: false, path: None });
+    };
+    let path = Some(root.to_string_lossy().to_string());
+    let probe = tauri::async_runtime::spawn_blocking(move || {
+        root.is_dir() || std::fs::create_dir_all(&root).is_ok()
+    });
+    let reachable = matches!(
+        tokio::time::timeout(std::time::Duration::from_secs(8), probe).await,
+        Ok(Ok(true))
+    );
+    Ok(MirrorDirCheck { configured: true, reachable, path })
+}
+
+/// Whether the FlowCapture Companion extension is installed and enabled in the browsers of this
+/// computer (read from their profiles, no browser needs to be open).
+#[tauri::command]
+pub async fn get_browser_extension_status(
+    state: State<'_, Arc<AppState>>,
+) -> Result<crate::platform::browser_extensions::BrowserExtensionStatus, String> {
+    let required = crate::platform::browser_extensions::extension_required(&state.db);
+    tauri::async_runtime::spawn_blocking(move || crate::platform::browser_extensions::check(required))
+        .await
+        .map_err(|err| err.to_string())
+}
+
+/// FlowCapture was started with `--admin` (shows the admin tools, e.g. "Importa da cartella").
+#[tauri::command]
+pub fn is_admin_mode() -> bool {
+    std::env::args().skip(1).any(|arg| arg.eq_ignore_ascii_case("--admin"))
+}
+
+/// Admin only: imports from the sessions folder the sessions recorded on other computers, only
+/// the new and the changed ones.
+#[tauri::command]
+pub async fn import_sessions_from_mirror(
+    state: State<'_, Arc<AppState>>,
+) -> Result<crate::storage::folder_import::FolderImportSummary, String> {
+    if !is_admin_mode() {
+        return Err("Funzione riservata agli amministratori (avvia FlowCapture con --admin)".to_string());
     }
-    state
-        .db
-        .set_setting(crate::storage::mirror::MIRROR_DIR_SETTING, &value)
-        .map_err(|err| err.to_string())?;
-    if value.is_empty() {
-        return Ok(0);
-    }
-    crate::storage::mirror::sync_all(&state.db, &state.mirror).map_err(|err| err.to_string())
+    let root = crate::storage::mirror::admin_import_root(&state.db)
+        .ok_or_else(|| "Nessuna cartella sessioni configurata: impostala in Impostazioni".to_string())?;
+    let db = Arc::clone(&state.db);
+    tauri::async_runtime::spawn_blocking(move || crate::storage::folder_import::import_changed_sessions(&db, &root))
+        .await
+        .map_err(|err| err.to_string())?
+        .map_err(|err| format!("{err:#}"))
 }
 
 /// Re-copies every session into the sessions folder (e.g. after files were removed by hand).
@@ -1908,14 +1975,29 @@ pub fn sync_session_mirror(state: State<'_, Arc<AppState>>) -> Result<usize, Str
     if crate::storage::mirror::mirror_root(&state.db).is_none() {
         return Err("Nessuna cartella sessioni configurata".to_string());
     }
+    if !crate::storage::mirror::mirror_write_enabled(&state.db) {
+        return Err("La scrittura nella cartella sessioni è disattivata (Impostazioni → Cartella sessioni)".to_string());
+    }
     crate::storage::mirror::sync_all(&state.db, &state.mirror).map_err(|err| err.to_string())
 }
 
+/// Sessions that could not be copied to the sessions folder yet (e.g. network share offline).
 #[tauri::command]
-pub fn open_session_mirror_dir(state: State<'_, Arc<AppState>>) -> Result<(), String> {
+pub fn get_session_mirror_status(state: State<'_, Arc<AppState>>) -> crate::storage::mirror::MirrorStatus {
+    state.mirror.status()
+}
+
+#[tauri::command]
+pub async fn open_session_mirror_dir(state: State<'_, Arc<AppState>>) -> Result<(), String> {
     let root = crate::storage::mirror::mirror_root(&state.db)
         .ok_or_else(|| "Nessuna cartella sessioni configurata".to_string())?;
-    std::fs::create_dir_all(&root).map_err(|err| err.to_string())?;
-    open_in_file_manager(&root);
-    Ok(())
+    tauri::async_runtime::spawn_blocking(move || {
+        std::fs::create_dir_all(&root).map_err(|err| {
+            format!("Cartella sessioni non raggiungibile ({err}). Controlla di essere collegato alla VPN.")
+        })?;
+        open_in_file_manager(&root);
+        Ok(())
+    })
+    .await
+    .map_err(|err| err.to_string())?
 }

@@ -13,6 +13,7 @@ mod storage;
 mod process_util;
 mod thread_util;
 pub mod logger;
+pub mod updater;
 
 use std::sync::Arc;
 
@@ -47,6 +48,11 @@ pub fn run() {
             let platform = create_platform_services()?;
             let state = Arc::new(AppState::new(db, platform)?);
             state.cleanup_stale_recordings()?;
+            let _ = crate::storage::mirror::apply_default_mirror_dir(&state.db);
+            
+            if crate::storage::mirror::mirror_write_root(&state.db).is_some() {
+                let _ = crate::storage::mirror::sync_all(&state.db, &state.mirror);
+            }
             app.manage(state);
 
             #[cfg(target_os = "macos")]
@@ -73,6 +79,11 @@ pub fn run() {
             commands::set_session_mirror_dir,
             commands::sync_session_mirror,
             commands::open_session_mirror_dir,
+            commands::get_session_mirror_status,
+            commands::check_session_mirror_dir,
+            commands::is_admin_mode,
+            commands::get_browser_extension_status,
+            commands::import_sessions_from_mirror,
             commands::update_session_documentation,
             commands::list_monitors,
             commands::start_recording,

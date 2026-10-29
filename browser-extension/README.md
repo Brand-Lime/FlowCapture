@@ -1,6 +1,10 @@
-﻿# FlowCapture Companion Extension
+# FlowCapture Companion Extension
 
-Estensione per Google Chrome, Microsoft Edge e browser basati su Chromium.
+Estensione per Google Chrome, Microsoft Edge, Brave, Opera e Mozilla Firefox.
+
+I pacchetti per gli store (Chromium e Firefox) si creano con `node scripts/build-browser-extensions.mjs`
+(cartella `dist-extensions/`); come pubblicarla e installarla sui PC con i criteri di gruppo è descritto in
+`docs/estensione-browser-IT.md`. FlowCapture non avvia la registrazione se l'estensione manca in un browser usato.
 Cattura con precisione l'elemento cliccato (testo, tag, tipo, selettore CSS, URL) e lo invia direttamente a **FlowCapture** via bridge locale (`127.0.0.1:41789`).
 
 ---

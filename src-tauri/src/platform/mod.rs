@@ -13,6 +13,7 @@ mod traits;
 mod windows;
 
 pub mod browser_bridge;
+pub mod browser_extensions;
 pub mod windows_uia;
 
 pub use permissions::{

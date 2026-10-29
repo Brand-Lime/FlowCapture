@@ -1,5 +1,6 @@
 use std::path::{Path, PathBuf};
 use std::process::Stdio;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
 use std::thread;
 
@@ -68,6 +69,8 @@ fn sidecar_ffmpeg_paths() -> Vec<PathBuf> {
         if let Some(dir) = exe.parent() {
             for name in [
                 "ffmpeg",
+                // Installed Windows builds (Tauri bundle, Velopack) ship the sidecar as ffmpeg.exe.
+                "ffmpeg.exe",
                 "ffmpeg-aarch64-apple-darwin",
                 "ffmpeg-x86_64-apple-darwin",
                 "ffmpeg-x86_64-pc-windows-msvc.exe",
@@ -92,13 +95,39 @@ fn sidecar_ffmpeg_paths() -> Vec<PathBuf> {
     paths
 }
 
+/// Videos being encoded or finalized after a recording: closing the app now would lose them
+/// (and they would never reach the sessions folder).
+static ACTIVE_VIDEO_JOBS: AtomicUsize = AtomicUsize::new(0);
+
+/// Counts a video job from its creation (before the thread starts) to its end.
+struct VideoJob;
+
+impl VideoJob {
+    fn start() -> Self {
+        ACTIVE_VIDEO_JOBS.fetch_add(1, Ordering::SeqCst);
+        VideoJob
+    }
+}
+
+impl Drop for VideoJob {
+    fn drop(&mut self) {
+        ACTIVE_VIDEO_JOBS.fetch_sub(1, Ordering::SeqCst);
+    }
+}
+
+pub fn active_video_jobs() -> usize {
+    ACTIVE_VIDEO_JOBS.load(Ordering::SeqCst)
+}
+
 pub fn spawn_session_video_encode(
     db: Arc<Database>,
     app: AppHandle,
     session_id: String,
     duration_secs: i64,
 ) {
+    let job = VideoJob::start();
     thread::spawn(move || {
+        let _job = job;
         let session_dir = db.session_dir(&session_id);
         match encode_session_video(&session_dir, duration_secs) {
             Ok(Some(path)) => {
@@ -130,7 +159,9 @@ pub fn spawn_session_full_video_finalize(
     session_id: String,
     audio_path: Option<PathBuf>,
 ) {
+    let job = VideoJob::start();
     thread::spawn(move || {
+        let _job = job;
         let session_dir = db.session_dir(&session_id);
         let temp_video = session_dir.join("video/recording_hd_temp.mp4");
         let final_video = session_dir.join("video/recording_hd.mp4");

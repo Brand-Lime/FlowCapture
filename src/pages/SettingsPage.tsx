@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { open as openDialog } from "@tauri-apps/plugin-dialog";
 import { AppButton } from "@/components/ui/AppButton";
+import { MirrorStatusBanner } from "@/components/sessions/MirrorStatusBanner";
+import {
+  BrowserExtensionList,
+  extensionBlocksRecording,
+  useBrowserExtensionStatus,
+} from "@/components/recording/BrowserExtensionStatus";
 import { api, type ProviderConfig, type MonitorInfo } from "@/lib/api";
 import { Icon } from "@/components/ui/Icon";
 import { providerGlyph } from "@/lib/icons";
@@ -34,7 +40,15 @@ export function SettingsPage() {
   const [fullVideoFps, setFullVideoFps] = useState("30");
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [mirrorDir, setMirrorDir] = useState<string | null>(null);
+  const [mirrorDir, setMirrorDir] = useState<string | null>("\\\\srvdati\\GenAuto13485");
+  // Off: the folder stays set (e.g. for the admin import) but the sessions are not written into it.
+  const [mirrorWrite, setMirrorWrite] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const extension = useBrowserExtensionStatus();
+
+  useEffect(() => {
+    api.isAdminMode().then(setIsAdmin).catch(() => {});
+  }, []);
   const [bridgeInfo, setBridgeInfo] = useState<{ port: number; recording: boolean } | null>(null);
 
   async function refreshDevices() {
@@ -134,6 +148,7 @@ export function SettingsPage() {
     setMonitors(nextMonitors);
     api.getBrowserBridgeStatus().then(setBridgeInfo).catch(() => {});
     api.getSessionMirrorDir().then(setMirrorDir).catch(() => {});
+    api.getSetting("session_mirror_write").then((value) => setMirrorWrite(value !== "false")).catch(() => {});
     await refreshDevices();
   }
 
@@ -199,6 +214,7 @@ export function SettingsPage() {
       });
       if (typeof picked !== "string" || !picked) return;
       const count = await api.setSessionMirrorDir(picked);
+      console.log(`Mirror directory set to: ${picked}, ${count} sessions copied`);
       setMirrorDir(picked);
       setMessage(`Cartella sessioni impostata: copia di ${count} sessioni in corso`);
     } catch (err) {
@@ -213,6 +229,18 @@ export function SettingsPage() {
       setMessage("Copia automatica delle sessioni disattivata (i file già copiati restano dove sono)");
     } catch (err) {
       setError(String(err));
+    }
+  }
+
+  async function changeMirrorWrite(next: boolean) {
+    setMirrorWrite(next);
+    await saveSetting("session_mirror_write", String(next));
+    if (next) {
+      // Copies what changed while writing was off.
+      const count = await api.syncSessionMirror().catch(() => 0);
+      setMessage(`Salvataggio nella cartella sessioni riattivato: aggiornamento di ${count} sessioni in corso`);
+    } else {
+      setMessage("Le sessioni non vengono più scritte nella cartella sessioni (i file già copiati restano dove sono)");
     }
   }
 
@@ -298,7 +326,10 @@ export function SettingsPage() {
           un'esportazione completa: video, audio, screenshot, documentazione, esportazioni e un{" "}
           <code>manifest.json</code> con passaggi ed eventi. Ogni sessione ha una sottocartella con il suo
           nome, rinominata insieme alla sessione; la copia si aggiorna da sola a ogni modifica.
+          Puoi indicare anche una cartella di rete condivisa (es. <code>{"\\\\server\\FlowCapture\\nome.cognome"}</code>):
+          se non è raggiungibile, le sessioni vengono copiate appena torna disponibile.
         </div>
+        {mirrorWrite ? <MirrorStatusBanner /> : null}
         <div className="mirror-path">
           <Icon name="folder" size={16} />
           <span className={mirrorDir ? "" : "mirror-path-empty"}>{mirrorDir ?? "Nessuna cartella: copia disattivata"}</span>
@@ -312,15 +343,33 @@ export function SettingsPage() {
               <AppButton kind="ghost" onClick={() => api.openSessionMirrorDir().catch((err) => setError(String(err)))}>
                 Apri cartella
               </AppButton>
-              <AppButton kind="ghost" onClick={syncMirrorNow}>
-                Aggiorna ora
-              </AppButton>
+              {mirrorWrite ? (
+                <AppButton kind="ghost" onClick={syncMirrorNow}>
+                  Aggiorna ora
+                </AppButton>
+              ) : null}
               <AppButton kind="ghost" onClick={disableMirrorDir}>
-                Disattiva
+                Rimuovi cartella
               </AppButton>
             </>
           ) : null}
         </div>
+        {mirrorDir ? (
+          <SettingSwitch
+            narrow
+            label="Salva le sessioni in questa cartella"
+            value={mirrorWrite}
+            onLabel="Attivo"
+            offLabel="Disattivo"
+            onChange={(next) => changeMirrorWrite(next)}
+          />
+        ) : null}
+        {mirrorDir && !mirrorWrite ? (
+          <div className="pd" style={{ marginTop: 8 }}>
+            La cartella resta impostata (serve a "Importa da cartella" per gli amministratori), ma le sessioni di questo
+            computer non vengono scritte al suo interno.
+          </div>
+        ) : null}
       </div>
 
       <div className="card set-card">
@@ -355,31 +404,74 @@ export function SettingsPage() {
           </div>
         </div>
 
-        <div className="settings-infobox">
-          <div className="settings-infobox-title">{t("settings.extension.install_title")}</div>
-          <ol>
-            <li>{t("settings.extension.step1")}</li>
-            <li>{t("settings.extension.step2")}</li>
-            <li>{t("settings.extension.step3")}</li>
-          </ol>
-          <div className="settings-infobox-note">{t("settings.extension.note")}</div>
-        </div>
+        {extension.status?.supported ? (
+          <div style={{ marginTop: 14 }}>
+            <BrowserExtensionList status={extension.status} />
+            {extensionBlocksRecording(extension.status) ? (
+              <div className="warn-card danger">
+                <span>🧩</span>
+                <div className="warn-card-body">
+                  <strong>La registrazione è bloccata finché l'estensione non è installata in tutti i browser
+                  usati.</strong>{" "}
+                  Contatta il team IT per farla installare.
+                </div>
+              </div>
+            ) : null}
+            <div className="settings-actions">
+              <AppButton kind="ghost" icon="refresh" disabled={extension.checking} onClick={() => void extension.refresh()}>
+                {extension.checking ? "Controllo…" : "Ricontrolla"}
+              </AppButton>
+            </div>
+          </div>
+        ) : null}
 
-        <div className="settings-actions">
-          <AppButton
-            kind="primary"
-            onClick={async () => {
-              try {
-                const path = await api.openBrowserExtensionFolder();
-                setMessage(`Extension folder opened: ${path}`);
-              } catch (e: any) {
-                setError(`Could not open extension folder: ${e?.message ?? e}`);
-              }
-            }}
-          >
-            {t("settings.open_extension")}
-          </AppButton>
-        </div>
+        {isAdmin ? (
+          <>
+            {extension.status?.supported ? (
+              <SettingSwitch
+                narrow
+                label="Estensione obbligatoria per registrare (admin)"
+                value={extension.status.required}
+                onLabel="Sì"
+                offLabel="No"
+                onChange={async (next) => {
+                  await saveSetting("browser_extension_required", String(next));
+                  await extension.refresh();
+                }}
+              />
+            ) : null}
+
+            <div className="settings-infobox">
+              <div className="settings-infobox-title">{t("settings.extension.install_title")}</div>
+              <ol>
+                <li>{t("settings.extension.step1")}</li>
+                <li>{t("settings.extension.step2")}</li>
+                <li>{t("settings.extension.step3")}</li>
+              </ol>
+              <div className="settings-infobox-note">{t("settings.extension.note")}</div>
+            </div>
+
+            <div className="settings-actions">
+              <AppButton
+                kind="primary"
+                onClick={async () => {
+                  try {
+                    const path = await api.openBrowserExtensionFolder();
+                    setMessage(`Extension folder opened: ${path}`);
+                  } catch (e: any) {
+                    setError(`Could not open extension folder: ${e?.message ?? e}`);
+                  }
+                }}
+              >
+                {t("settings.open_extension")}
+              </AppButton>
+            </div>
+          </>
+        ) : (
+          <div className="pd" style={{ marginTop: 10 }}>
+            L'estensione viene installata dal team IT: se manca in uno dei tuoi browser, contattalo.
+          </div>
+        )}
       </div>
 
       <div className="card set-card">

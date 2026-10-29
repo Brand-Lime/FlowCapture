@@ -55,6 +55,57 @@ export interface Screenshot {
   annotations_json?: string | null;
 }
 
+/** Copy of the sessions to the sessions folder (usually a network share), done in the background. */
+export interface MirrorStatus {
+  /** Sessions whose copy failed (folder unreachable): retried automatically. */
+  pending_sessions: number;
+  last_error: string | null;
+  /** A copy is running. */
+  syncing: boolean;
+  current_session: string | null;
+  queued: number;
+  /** Step of the current copy: the session files or the .flowcapture archive. */
+  phase: "files" | "archive" | null;
+  /** Bytes written / to write in the current step. */
+  done_bytes: number;
+  total_bytes: number;
+  /** Videos still being encoded after a recording (saved to the folder when ready). */
+  processing_videos: number;
+}
+
+export interface MirrorDirCheck {
+  configured: boolean;
+  reachable: boolean;
+  path: string | null;
+}
+
+/** FlowCapture Companion extension in the browsers of this computer. */
+export interface BrowserExtensionStatus {
+  /** Checked automatically (Windows); elsewhere the user is only told once. */
+  supported: boolean;
+  /** Recording needs the extension in every used browser. */
+  required: boolean;
+  browsers: {
+    id: string;
+    name: string;
+    /** Opened at least once (has a profile): only these are checked. */
+    used: boolean;
+    extension: "active" | "disabled" | "missing";
+  }[];
+  /** Used browsers where the extension is missing or disabled. */
+  missing: string[];
+}
+
+export interface FolderImportSummary {
+  /** Folder the sessions were read from (with a per-user default: the folder of every user). */
+  root: string;
+  imported: number;
+  updated: number;
+  unchanged: number;
+  skipped: number;
+  errors: string[];
+}
+
 export interface ProviderConfig {
   id: string;
   name: string;
@@ -344,6 +395,11 @@ export const api = {
   setSessionMirrorDir: (path: string | null) => invoke<number>("set_session_mirror_dir", { path }),
   syncSessionMirror: () => invoke<number>("sync_session_mirror"),
   openSessionMirrorDir: () => invoke<void>("open_session_mirror_dir"),
+  getSessionMirrorStatus: () => invoke<MirrorStatus>("get_session_mirror_status"),
+  checkSessionMirrorDir: () => invoke<MirrorDirCheck>("check_session_mirror_dir"),
+  isAdminMode: () => invoke<boolean>("is_admin_mode"),
+  getBrowserExtensionStatus: () => invoke<BrowserExtensionStatus>("get_browser_extension_status"),
+  importSessionsFromMirror: () => invoke<FolderImportSummary>("import_sessions_from_mirror"),
   openBrowserExtensionFolder: () => invoke<string>("open_browser_extension_folder"),
   getBrowserBridgeStatus: () =>
     invoke<{ port: number; recording: boolean }>("get_browser_bridge_status"),

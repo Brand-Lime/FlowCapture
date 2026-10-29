@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api, type Session, type MonitorInfo } from "@/lib/api";
+import { describeMicrophoneError, MicrophoneError, openMicrophone, pickAudioMimeType } from "@/lib/microphone";
 
 function blobToBase64(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -23,6 +24,28 @@ export interface PauseClock {
 }
 
 const NO_PAUSES: PauseClock = { pausedMs: 0, pausedAt: null };
+
+const MIC_DISCONNECTED =
+  "Il microfono si è scollegato o è stato disattivato: da questo momento l'audio non viene registrato. " +
+  "Ricollegalo e sceglilo dal menu del microfono qui sotto, oppure ferma la registrazione.";
+
+/**
+ * The saved microphone, or "" (Windows default) when it is not plugged in any more: a missing
+ * device would otherwise make the recording start fail.
+ */
+async function availableMicrophoneId(savedId: string): Promise<string> {
+  if (!savedId || !navigator?.mediaDevices?.enumerateDevices) return savedId;
+  const devices = await navigator.mediaDevices.enumerateDevices().catch(() => []);
+  const mics = devices.filter((device) => device.kind === "audioinput");
+  // Without the permission the ids are empty and nothing can be compared.
+  if (mics.length === 0 || mics.some((device) => !device.deviceId)) return savedId;
+  return mics.some((device) => device.deviceId === savedId) ? savedId : "";
+}
+
+export interface StartOptions {
+  /** Records without the microphone even when audio recording is on (the user chose so). */
+  withoutAudio?: boolean;
+}
 
 /** Recorded seconds since `startedAt`, not counting pauses. */
 export function recordedSeconds(startedAt: string, clock: PauseClock, now = Date.now()): number {
@@ -53,6 +76,10 @@ export function useRecording() {
   const [recordAudio, setRecordAudioState] = useState<boolean>(false);
   const [transcribeAudio, setTranscribeAudioState] = useState<boolean>(true);
   const [highlightClicks, setHighlightClicksState] = useState<boolean>(true);
+  // Microphone failure during the current recording, shown in the HUD.
+  const [micProblem, setMicProblem] = useState<string | null>(null);
+  // Sessions whose audio is being transcribed automatically after the recording.
+  const [transcribingSessionIds, setTranscribingSessionIds] = useState<string[]>([]);
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const audioChunksRef = useRef<Blob[]>([]);
@@ -160,10 +187,7 @@ export function useRecording() {
     setSelectedMicId(newMicId);
     if (!audioStreamRef.current || !mediaRecorderRef.current) return;
     try {
-      const constraints: MediaStreamConstraints = {
-        audio: newMicId ? { deviceId: { exact: newMicId } } : true,
-      };
-      const newStream = await navigator.mediaDevices.getUserMedia(constraints);
+      const newStream = await openMicrophone(newMicId);
       const newTrack = newStream.getAudioTracks()[0];
       const context = audioContextRef.current;
       const destination = audioDestRef.current;
@@ -174,6 +198,7 @@ export function useRecording() {
         return;
       }
       newTrack.enabled = !isMuted;
+      newTrack.onended = () => setMicProblem(MIC_DISCONNECTED);
 
       const newSource = context.createMediaStreamSource(newStream);
       newSource.connect(destination);
@@ -181,8 +206,13 @@ export function useRecording() {
       audioStreamRef.current.getTracks().forEach((t) => t.stop());
       audioSourceRef.current = newSource;
       audioStreamRef.current = newStream;
+      setMicProblem(null);
     } catch (err) {
       console.warn("Failed to switch microphone:", err);
+      setMicProblem(
+        `${err instanceof MicrophoneError ? err.message : describeMicrophoneError(err)} ` +
+          "La registrazione continua con il microfono precedente.",
+      );
     }
   }, [isMuted, setSelectedMicId]);
 
@@ -212,6 +242,15 @@ export function useRecording() {
     }
   }, []);
 
+  // Microphones plugged in or removed while the app is open show up without pressing "refresh".
+  useEffect(() => {
+    const devices = navigator?.mediaDevices;
+    if (!devices?.addEventListener) return;
+    const onChange = () => void refreshAudioDevices();
+    devices.addEventListener("devicechange", onChange);
+    return () => devices.removeEventListener("devicechange", onChange);
+  }, [refreshAudioDevices]);
+
   async function refreshRecording() {
     const sessions = await api.listSessions();
     setRecording(sessions.find((session) => session.status === "recording") ?? null);
@@ -240,9 +279,10 @@ export function useRecording() {
       .catch(() => undefined);
   }, [refreshAudioDevices, refreshMonitors]);
 
-  async function start(title?: string) {
+  async function start(title?: string, options: StartOptions = {}) {
     setLoading(true);
     setError(null);
+    setMicProblem(null);
     try {
       const permissions = await api.prepareRecordingPermissions();
       if (!permissions.can_record) {
@@ -251,14 +291,15 @@ export function useRecording() {
         );
       }
 
-      // Start audio recording if enabled
-      if (recordAudio && navigator?.mediaDevices?.getUserMedia) {
+      // Start audio recording if enabled. A microphone that does not work stops the start: the
+      // user decides whether to fix it or record without audio (`withoutAudio`).
+      if (recordAudio && !options.withoutAudio) {
+        const stream = await openMicrophone(await availableMicrophoneId(selectedMicId));
         try {
-          const constraints: MediaStreamConstraints = {
-            audio: selectedMicId ? { deviceId: { exact: selectedMicId } } : true,
-          };
-          const stream = await navigator.mediaDevices.getUserMedia(constraints);
           audioStreamRef.current = stream;
+          stream.getAudioTracks().forEach((track) => {
+            track.onended = () => setMicProblem(MIC_DISCONNECTED);
+          });
           audioChunksRef.current = [];
 
           let recordedStream = stream;
@@ -274,16 +315,7 @@ export function useRecording() {
             recordedStream = destination.stream;
           }
 
-          // Determine supported mime type
-          let mimeType = "audio/webm";
-          if (MediaRecorder.isTypeSupported("audio/webm;codecs=opus")) {
-            mimeType = "audio/webm;codecs=opus";
-          } else if (MediaRecorder.isTypeSupported("audio/ogg;codecs=opus")) {
-            mimeType = "audio/ogg;codecs=opus";
-          } else if (MediaRecorder.isTypeSupported("audio/mp4")) {
-            mimeType = "audio/mp4";
-          }
-
+          const mimeType = pickAudioMimeType();
           const recorder = new MediaRecorder(recordedStream, { mimeType });
           recorder.ondataavailable = (event) => {
             if (event.data && event.data.size > 0) {
@@ -297,7 +329,7 @@ export function useRecording() {
         } catch (micErr) {
           releaseAudio();
           mediaRecorderRef.current = null;
-          console.warn("Could not start microphone recording:", micErr);
+          throw new MicrophoneError(`Non è stato possibile avviare la registrazione audio (${String(micErr)}).`);
         }
       }
 
@@ -315,7 +347,8 @@ export function useRecording() {
       }
       releaseAudio();
       mediaRecorderRef.current = null;
-      setError(String(err));
+      // Microphone problems are explained by the caller, which offers to record without audio.
+      if (!(err instanceof MicrophoneError)) setError(String(err));
       throw err;
     } finally {
       setLoading(false);
@@ -362,6 +395,7 @@ export function useRecording() {
       setIsPaused(false);
       setIsMuted(false);
       setPauseClock(NO_PAUSES);
+      setMicProblem(null);
 
       // Save recorded audio if any
       const audioData = await audioBlobPromise;
@@ -371,9 +405,13 @@ export function useRecording() {
 
           // If auto-transcribe is enabled, trigger background transcription
           if (transcribeAudio) {
-            api.transcribeSessionAudio(session.id).catch((transcribeErr) => {
-              console.warn("Auto-transcription error:", transcribeErr);
-            });
+            setTranscribingSessionIds((ids) => [...ids, session.id]);
+            api
+              .transcribeSessionAudio(session.id)
+              .catch((transcribeErr) => {
+                console.warn("Auto-transcription error:", transcribeErr);
+              })
+              .finally(() => setTranscribingSessionIds((ids) => ids.filter((id) => id !== session.id)));
           }
         } catch (audioSaveErr) {
           console.warn("Failed to save session audio:", audioSaveErr);
@@ -436,5 +474,7 @@ export function useRecording() {
     toggleMute,
     switchMicrophone,
     switchMonitor,
+    micProblem,
+    transcribingSessionIds,
   };
 }

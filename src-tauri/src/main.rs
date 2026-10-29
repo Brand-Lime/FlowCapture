@@ -2,5 +2,6 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
+    flowcapture_lib::updater::run_startup_hooks();
     flowcapture_lib::run()
 }

@@ -12,6 +12,7 @@ use crate::storage::models::{
 };
 
 pub mod bundle;
+pub mod folder_import;
 pub mod mirror;
 pub mod models;
 

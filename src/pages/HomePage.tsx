@@ -6,10 +6,19 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Icon } from "@/components/ui/Icon";
 import { Toast } from "@/components/ui/Toast";
 import { PermissionsBanner } from "@/components/recording/PermissionsBanner";
+import { MicrophoneTest } from "@/components/recording/MicrophoneTest";
+import {
+  BrowserExtensionWarning,
+  describeMissingExtension,
+  extensionBlocksRecording,
+  useBrowserExtensionStatus,
+} from "@/components/recording/BrowserExtensionStatus";
 import { SessionThumbnail } from "@/components/sessions/SessionThumbnail";
+import { MirrorStatusBanner } from "@/components/sessions/MirrorStatusBanner";
 import { useRecordingContext } from "@/context/RecordingContext";
 import { useSessionsContext } from "@/context/SessionsContext";
 import { api, type Session } from "@/lib/api";
+import { MicrophoneError } from "@/lib/microphone";
 import { statusBadgeClass } from "@/lib/icons";
 import { formatDuration, formatTimestamp } from "@/lib/utils";
 
@@ -45,6 +54,77 @@ export function HomePage() {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [sessionToDelete, setSessionToDelete] = useState<Session | null>(null);
   const [deletingSession, setDeletingSession] = useState(false);
+  // Why the microphone cannot be used: the user can fix it or record without audio.
+  const [micIssue, setMicIssue] = useState<string | null>(null);
+  const [aiConfigured, setAiConfigured] = useState(true);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    api.isAdminMode().then(setIsAdmin).catch(() => undefined);
+  }, []);
+
+  useEffect(() => {
+    api
+      .listProviders()
+      .then((providers) => setAiConfigured(providers.some((provider) => provider.enabled === 1)))
+      .catch(() => undefined);
+  }, []);
+
+  // The saved microphone is not plugged in: recording uses the default one (see useRecording).
+  const savedMicMissing =
+    Boolean(selectedMicId) &&
+    audioDevices.length > 0 &&
+    audioDevices.every((device) => device.deviceId) &&
+    !audioDevices.some((device) => device.deviceId === selectedMicId);
+
+  const extension = useBrowserExtensionStatus();
+  // Recording refused because the browser extension is missing (text of the dialog).
+  const [extensionIssue, setExtensionIssue] = useState<string | null>(null);
+
+  async function handleStart(withoutAudio = false) {
+    // Checked again right now: the extension may have been installed or removed meanwhile.
+    const extensionStatus = await extension.refresh();
+    if (extensionStatus && extensionBlocksRecording(extensionStatus)) {
+      setExtensionIssue(describeMissingExtension(extensionStatus));
+      return;
+    }
+    if (recordAudio && !withoutAudio) {
+      const devices = (await navigator.mediaDevices?.enumerateDevices?.().catch(() => [])) ?? [];
+      if (!devices.some((device) => device.kind === "audioinput")) {
+        setMicIssue("Non è collegato nessun microfono al computer.");
+        return;
+      }
+    }
+    try {
+      await start(undefined, { withoutAudio });
+    } catch (err) {
+      if (err instanceof MicrophoneError) setMicIssue(err.message);
+    }
+  }
+
+  /** Admin: imports the new and changed sessions from the sessions folder set in Settings. */
+  async function handleImportFromMirror() {
+    setImporting(true);
+    setError(null);
+    try {
+      const summary = await api.importSessionsFromMirror();
+      await refreshSessions();
+      const parts = [
+        `${summary.imported} nuove`,
+        `${summary.updated} aggiornate`,
+        `${summary.unchanged} invariate`,
+      ];
+      if (summary.skipped > 0) parts.push(`${summary.skipped} in copia (riprova tra poco)`);
+      setToastMessage(`Importazione da ${summary.root}: ${parts.join(", ")}.`);
+      if (summary.errors.length > 0) {
+        setError(`Alcune sessioni non sono state importate:\n${summary.errors.join("\n")}`);
+      }
+    } catch (err) {
+      setError(`Errore durante l'importazione dalla cartella sessioni: ${err}`);
+    } finally {
+      setImporting(false);
+    }
+  }
 
   async function handleImportSession() {
     try {
@@ -122,13 +202,13 @@ export function HomePage() {
         !loading
       ) {
         event.preventDefault();
-        start().catch(() => undefined);
+        void handleStart();
       }
     }
 
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
-  }, [canRecord, loading, start]);
+  });
 
   return (
     <div className="page">
@@ -304,9 +384,9 @@ export function HomePage() {
                         ?.getUserMedia({ audio: true })
                         .then((stream) => {
                           stream.getTracks().forEach((t) => t.stop());
-                          return refreshAudioDevices();
                         })
-                        .catch(() => undefined);
+                        .catch(() => undefined)
+                        .finally(() => refreshAudioDevices());
                     }}
                     style={{
                       background: "transparent",
@@ -320,6 +400,29 @@ export function HomePage() {
                     Aggiorna lista
                   </button>
                 </div>
+
+                {audioDevices.length === 0 ? (
+                  <div className="warn-card danger" style={{ marginTop: 0 }}>
+                    <span>🎙️</span>
+                    <div className="warn-card-body">
+                      <strong>Nessun microfono rilevato.</strong> Collega un microfono o una cuffia con microfono e
+                      premi "Aggiorna lista". Se non ti serve l'audio, metti "Registra audio microfono" su Off.
+                    </div>
+                  </div>
+                ) : savedMicMissing ? (
+                  <div className="warn-card" style={{ marginTop: 0 }}>
+                    <span>🎙️</span>
+                    <div className="warn-card-body">
+                      <strong>Il microfono scelto l'ultima volta non è collegato:</strong> verrà usato il microfono
+                      predefinito di Windows. Ricollegalo o scegline un altro dalla lista.
+                    </div>
+                  </div>
+                ) : null}
+
+                <MicrophoneTest
+                  deviceId={savedMicMissing ? "" : selectedMicId}
+                  onDevicesChanged={() => void refreshAudioDevices()}
+                />
 
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
                   <div style={{ fontSize: "12.5px", color: "var(--text-2)" }}>
@@ -416,22 +519,56 @@ export function HomePage() {
             kind="primary"
             icon="play"
             disabled={loading || !canRecord}
-            onClick={() => start().catch(() => undefined)}
+            onClick={() => void handleStart()}
           >
             Start Recording
           </AppButton>
           <AppButton
             icon="folder"
             disabled={importing}
-            onClick={handleImportSession}
+            onClick={() => void handleImportSession()}
           >
             {importing ? "Importazione…" : "Importa Sessione (.flowcapture)"}
           </AppButton>
+          {isAdmin ? (
+            <AppButton
+              kind="ghost"
+              icon="refresh"
+              disabled={importing}
+              onClick={() => void handleImportFromMirror()}
+              title="Importa dalla cartella sessioni delle Impostazioni le sessioni registrate sugli altri computer (solo quelle nuove o modificate)"
+            >
+              {importing ? "Importazione…" : "Importa da cartella (admin)"}
+            </AppButton>
+          ) : null}
           <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)" }}>
             ⌘⇧R
           </span>
         </div>
       </div>
+
+      <BrowserExtensionWarning
+        status={extension.status}
+        checking={extension.checking}
+        onRecheck={() => void extension.refresh()}
+      />
+
+      <MirrorStatusBanner />
+
+      {!aiConfigured ? (
+        <div className="warn-card info">
+          <span>✨</span>
+          <div className="warn-card-body">
+            <strong>Nessun servizio AI configurato.</strong> Puoi registrare normalmente, ma per trascrivere l'audio e
+            generare la documentazione serve un provider AI (chiave API) nelle Impostazioni.
+          </div>
+          <div className="warn-card-actions">
+            <AppButton size="sm" onClick={() => navigate("/settings")}>
+              Apri Impostazioni
+            </AppButton>
+          </div>
+        </div>
+      ) : null}
 
       {error ? (
         <div
@@ -449,7 +586,7 @@ export function HomePage() {
         >
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <Icon name="alert" size={18} />
-            <span style={{ fontSize: "13px", lineHeight: "1.4" }}>{error}</span>
+            <span style={{ fontSize: "13px", lineHeight: "1.4", whiteSpace: "pre-line" }}>{error}</span>
           </div>
           <button
             type="button"
@@ -572,6 +709,40 @@ export function HomePage() {
           }
         }}
         onCancel={() => setSessionToDelete(null)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(extensionIssue)}
+        title="Registrazione non disponibile: manca l'estensione del browser"
+        message={extensionIssue ?? ""}
+        confirmLabel="Ricontrolla"
+        cancelLabel="Chiudi"
+        kind="warning"
+        isLoading={extension.checking}
+        onConfirm={async () => {
+          const next = await extension.refresh();
+          if (next && extensionBlocksRecording(next)) {
+            setExtensionIssue(describeMissingExtension(next));
+          } else {
+            setExtensionIssue(null);
+            void handleStart();
+          }
+        }}
+        onCancel={() => setExtensionIssue(null)}
+      />
+
+      <ConfirmModal
+        isOpen={Boolean(micIssue)}
+        title="Problema con il microfono"
+        message={`${micIssue ?? ""}\n\nPuoi risolvere il problema e premere di nuovo "Start Recording" (usa "Prova microfono" per controllare), oppure registrare solo lo schermo, senza la tua voce.`}
+        confirmLabel="Registra senza audio"
+        cancelLabel="Annulla"
+        kind="warning"
+        onConfirm={() => {
+          setMicIssue(null);
+          void handleStart(true);
+        }}
+        onCancel={() => setMicIssue(null)}
       />
 
       <Toast message={toastMessage} onDismiss={() => setToastMessage(null)} />

@@ -32,6 +32,8 @@ type RecordingHUDProps = {
   onSwitchMonitor?: (monitorId: string) => void;
   highlightClicks?: boolean;
   selectedMonitorName?: string;
+  /** The microphone stopped working during the recording. */
+  micProblem?: string | null;
 };
 
 const NO_PAUSE_CLOCK: PauseClock = { pausedMs: 0, pausedAt: null };
@@ -56,6 +58,7 @@ export function RecordingHUD({
   onSwitchMonitor,
   highlightClicks = true,
   selectedMonitorName,
+  micProblem,
 }: RecordingHUDProps) {
   const [elapsed, setElapsed] = useState(0);
   const [eventsCount, setEventsCount] = useState(0);
@@ -205,6 +208,10 @@ export function RecordingHUD({
             </div>
           </div>
         </div>
+        {micProblem ? <div className="hud-warning">🎙️ {micProblem}</div> : null}
+        {recordAudio && isMuted && !micProblem ? (
+          <div className="hud-warning">🔇 Il microfono è in muto: la tua voce non viene registrata.</div>
+        ) : null}
         <div className="hud-feed">
           {feed.map((item) => (
             <div className="fl" key={item.id}>
