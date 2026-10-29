@@ -112,7 +112,7 @@ pub fn build_provider(config: &ProviderConfig) -> Result<Box<dyn LlmProvider>> {
         "claude" => Ok(Box::new(ClaudeProvider::new(config.clone()))),
         "ollama" => Ok(Box::new(OllamaProvider::new(config.clone()))),
         "gemini" => Ok(Box::new(GeminiProvider::new(config.clone()))),
-        other => anyhow::bail!("unsupported provider type: {other}"),
+        other => anyhow::bail!("tipo di provider non supportato: {other}"),
     }
 }
 
@@ -431,7 +431,7 @@ impl LlmProvider for ClaudeProvider {
             .api_key
             .clone()
             .filter(|k| !k.trim().is_empty())
-            .context("Claude API key not configured")?;
+            .context("chiave API di Claude non configurata")?;
         let base_url = self
             .config
             .base_url
@@ -552,7 +552,7 @@ impl LlmProvider for ClaudeProvider {
         }
 
         if result.text.trim().is_empty() {
-            anyhow::bail!("missing Claude response content");
+            anyhow::bail!("risposta di Claude senza contenuto");
         }
 
         Ok(LlmResponse {
@@ -756,7 +756,7 @@ impl LlmProvider for GeminiProvider {
             .api_key
             .clone()
             .filter(|k| !k.trim().is_empty())
-            .context("Gemini API key not configured")?;
+            .context("chiave API di Gemini non configurata")?;
         let base_url = self
             .config
             .base_url
@@ -845,7 +845,7 @@ impl LlmProvider for GeminiProvider {
             })
             .unwrap_or_default();
         if raw_content.trim().is_empty() {
-            anyhow::bail!("missing Gemini response content");
+            anyhow::bail!("risposta di Gemini senza contenuto");
         }
 
         let usage_meta = &json_val["usageMetadata"];

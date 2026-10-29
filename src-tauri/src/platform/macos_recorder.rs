@@ -41,7 +41,7 @@ impl Default for MacScreenRecorder {
 impl ScreenRecorder for MacScreenRecorder {
     fn start(&mut self, output_dir: PathBuf) -> Result<PathBuf> {
         if self.recording.load(Ordering::SeqCst) {
-            anyhow::bail!("recording already in progress");
+            anyhow::bail!("è già in corso una registrazione");
         }
 
         std::fs::create_dir_all(&output_dir)?;

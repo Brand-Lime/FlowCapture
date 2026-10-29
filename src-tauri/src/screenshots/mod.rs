@@ -208,7 +208,7 @@ impl ScreenshotEngine {
         click_y: Option<i64>,
     ) -> Result<PendingCapture> {
         if self.session_id.is_none() {
-            anyhow::bail!("recording is not active");
+            anyhow::bail!("nessuna registrazione in corso");
         }
         let id = Uuid::new_v4().to_string();
         let screenshots_dir = session_dir.join("screenshots");

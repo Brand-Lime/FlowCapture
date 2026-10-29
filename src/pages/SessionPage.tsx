@@ -42,6 +42,8 @@ import {
 } from "@/lib/api";
 import { replaceImageOnLine } from "@/lib/markdownSteps";
 import { formatDuration } from "@/lib/utils";
+import { statusLabel } from "@/lib/icons";
+import { LogPanel } from "@/components/ui/LogPanel";
 
 /** How long after a recording ends the page keeps polling for its encoded videos. */
 const VIDEO_POLL_WINDOW_MS = 5 * 60 * 1000;
@@ -57,6 +59,16 @@ const TABS = [
 ] as const;
 
 type TabName = (typeof TABS)[number];
+
+const TAB_LABELS: Record<TabName, string> = {
+  Timeline: "Cronologia",
+  Screenshots: "Screenshot",
+  Documentation: "Documentazione",
+  Audio: "Audio",
+  Replay: "Passi",
+  Recording: "Video",
+  Exports: "Esportazioni",
+};
 
 export function SessionPage() {
   const { sessionId = "" } = useParams();
@@ -408,11 +420,11 @@ export function SessionPage() {
     const hasDocumentation = Boolean(session?.documentation_md && session.documentation_md.trim().length > 0);
     setConfirmModal({
       isOpen: true,
-      title: hasDocumentation ? "Sovrascrivere la Documentazione Esistente?" : "Generare la documentazione?",
+      title: hasDocumentation ? "Sovrascrivere la documentazione esistente?" : "Generare la documentazione?",
       message: hasDocumentation
         ? `Per questa sessione esiste già una documentazione generata: la documentazione attuale e i passaggi salvati verranno sovrascritti.\n\n${estimateText}`
         : estimateText,
-      confirmLabel: hasDocumentation ? "Rigenera e Sovrascrivi" : "Genera",
+      confirmLabel: hasDocumentation ? "Rigenera e sovrascrivi" : "Genera",
       cancelLabel: "Annulla",
       kind: hasDocumentation ? "warning" : "primary",
       action: () => executeGenerate(),
@@ -424,7 +436,7 @@ export function SessionPage() {
     setError(null);
     setToast(null);
     try {
-      await startJob(sessionId, title || session?.title || "Session");
+      await startJob(sessionId, title || session?.title || "Sessione");
     } catch (err) {
       setError(String(err));
     } finally {
@@ -436,9 +448,9 @@ export function SessionPage() {
     if (!session) return;
     setConfirmModal({
       isOpen: true,
-      title: "Elimina Sessione",
+      title: "Elimina sessione",
       message: `Sei sicuro di voler eliminare definitivamente la sessione "${session.title}"?\n\nTutti gli eventi registrati, gli screenshot e i file associati verranno cancellati in modo permanente. Questa operazione non può essere annullata.`,
-      confirmLabel: "Elimina Sessione",
+      confirmLabel: "Elimina sessione",
       cancelLabel: "Annulla",
       kind: "danger",
       action: async () => {
@@ -459,7 +471,7 @@ export function SessionPage() {
     setError(null);
     try {
       await navigator.clipboard.writeText(markdown);
-      setToast("Markdown copied");
+      setToast("Markdown copiato negli appunti");
     } catch (err) {
       setError(String(err));
     }
@@ -469,9 +481,9 @@ export function SessionPage() {
     if (session?.audio_transcript && session.audio_transcript.trim().length > 0) {
       setConfirmModal({
         isOpen: true,
-        title: "Sovrascrivere la Trascrizione Audio?",
-        message: "Questa sessione possiede già una trascrizione audio salvata.\n\nAvviando una nuova trascrizione con Whisper AI, il testo e i segmenti temporali attuali verranno sostituiti.\n\nDesideri procedere?",
-        confirmLabel: "Ritrascrivi Audio",
+        title: "Sovrascrivere la trascrizione audio?",
+        message: "Questa sessione possiede già una trascrizione audio salvata.\n\nCon una nuova trascrizione il testo e i segmenti con orario attuali verranno sostituiti.\n\nDesideri procedere?",
+        confirmLabel: "Trascrivi di nuovo",
         cancelLabel: "Annulla",
         kind: "warning",
         action: () => executeTranscribeAudio(),
@@ -514,9 +526,9 @@ export function SessionPage() {
     if (markdown && markdown.trim().length > 0) {
       setConfirmModal({
         isOpen: true,
-        title: "Tradurre la Documentazione in Italiano?",
+        title: "Tradurre la documentazione in italiano?",
         message: "Il testo attuale della guida verrà inviato al modello AI per essere tradotto in lingua italiana.\n\nI tag delle immagini e gli screenshot associati rimarranno intatti.\n\nDesideri avviare la traduzione?",
-        confirmLabel: "Avvia Traduzione",
+        confirmLabel: "Avvia traduzione",
         cancelLabel: "Annulla",
         kind: "primary",
         action: () => executeTranslateDocumentation(targetLanguage),
@@ -562,7 +574,7 @@ export function SessionPage() {
     setError(null);
     try {
       const record = await api.exportSession(sessionId, format, options);
-      setToast(`Exported ${record.format.toUpperCase()}`);
+      setToast(`Esportazione ${record.format.toUpperCase()} completata`);
       await refresh();
     } catch (err) {
       setError(String(err));
@@ -575,7 +587,7 @@ export function SessionPage() {
     setError(null);
     try {
       await revealItemInDir(path);
-      setToast("Revealed in folder");
+      setToast("File mostrato nella cartella");
     } catch (err) {
       setError(String(err));
     }
@@ -588,10 +600,10 @@ export function SessionPage() {
       const defaultName = `${sanitizedTitle}.flowcapture`;
       const targetPath = await save({
         defaultPath: defaultName,
-        title: "Salva archivio completo sessione FlowCapture",
+        title: "Salva l'archivio completo della sessione",
         filters: [
           {
-            name: "FlowCapture Session (*.flowcapture)",
+            name: "Sessione FlowCapture (*.flowcapture)",
             extensions: ["flowcapture", "zip"],
           },
         ],
@@ -613,7 +625,7 @@ export function SessionPage() {
   if (!session) {
     return (
       <div className="page">
-        <p style={{ color: "var(--muted)" }}>Loading session…</p>
+        <p style={{ color: "var(--muted)" }}>Caricamento della sessione…</p>
       </div>
     );
   }
@@ -690,21 +702,21 @@ export function SessionPage() {
         <input
           value={title}
           onChange={(event) => setTitle(event.target.value)}
-          aria-label="Session title"
+          aria-label="Titolo della sessione"
+          title="Clicca per cambiare il titolo della sessione"
         />
-        {saving ? <span className="sd-title-status">Saving…</span> : null}
+        {saving ? <span className="sd-title-status">Salvataggio…</span> : null}
       </div>
       <div className="sd-meta">
-        {session.status} · {formatDuration(session.duration)} · {events.length} timeline
-        events
+        {statusLabel(session.status)} · {formatDuration(session.duration)} · {events.length} eventi registrati
       </div>
 
       <div className="sd-actions" style={{ display: "flex", gap: "10px", alignItems: "center" }}>
         <AppButton kind="primary" icon="sparkles" disabled={busy} onClick={handleGenerate}>
-          Generate Documentation
+          Genera documentazione
         </AppButton>
         <AppButton icon="download" disabled={busy} onClick={() => switchTab("Exports")}>
-          Export
+          Esporta
         </AppButton>
         <AppButton
           icon="folder"
@@ -712,16 +724,16 @@ export function SessionPage() {
           onClick={handleExportBundle}
           title="Esporta l'intera sessione (eventi, screenshot, audio, video e documenti) in un file compresso trasferibile"
         >
-          {exportingBundle ? "Esportazione…" : "Esporta Sessione (.flowcapture)"}
+          {exportingBundle ? "Esportazione…" : "Esporta sessione (.flowcapture)"}
         </AppButton>
         <AppButton
-          kind="ghost"
+          kind="danger"
           icon="trash"
           disabled={busy}
           onClick={handleDeleteSession}
-          style={{ marginLeft: "auto", color: "#ef4444", borderColor: "rgba(239, 68, 68, 0.3)" }}
+          style={{ marginLeft: "auto" }}
         >
-          Elimina Sessione
+          Elimina sessione
         </AppButton>
       </div>
 
@@ -750,7 +762,7 @@ export function SessionPage() {
       {redactionSummary && redactionSummary.count > 0 ? (
         <div className="banner" style={{ marginTop: 18 }}>
           <span className="bt">
-            Applied {redactionSummary.count} redaction pattern(s) before AI processing:{" "}
+            Prima dell'invio all'AI sono stati oscurati {redactionSummary.count} tipi di dati sensibili:{" "}
             {redactionSummary.patterns.join(", ")}
           </span>
         </div>
@@ -764,7 +776,7 @@ export function SessionPage() {
             className={`tab${tab === name ? " active" : ""}`}
             onClick={() => switchTab(name)}
           >
-            {name}
+            {TAB_LABELS[name]}
           </button>
         ))}
       </div>
@@ -779,19 +791,10 @@ export function SessionPage() {
 
       {tab === "Screenshots" ? (
         <div className="card panel">
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-              marginBottom: "14px",
-              flexWrap: "wrap",
-              gap: "10px",
-            }}
-          >
+          <div className="panel-head">
             <div>
-              <h3 style={{ margin: 0 }}>Captured Screenshots ({screenshots.length})</h3>
-              <div className="pd">Catture basate sugli eventi registrati durante il workflow.</div>
+              <h3>Screenshot acquisiti ({screenshots.length})</h3>
+              <div className="pd">Immagini catturate a ogni evento registrato durante il lavoro.</div>
             </div>
             <div className="duplicate-tools">
               <SimilarityThreshold
@@ -801,17 +804,18 @@ export function SessionPage() {
               />
               <AppButton
                 size="sm"
+                icon="eye"
                 disabled={scanningDuplicates || screenshots.length < 2 || busy}
                 onClick={() => handleFindDuplicates()}
                 title={`Trova immagini con somiglianza ≥ ${duplicateThreshold}% e ti permette di scegliere quali unire o eliminare`}
               >
-                {scanningDuplicates ? "Scansione duplicati…" : `🔍 Elimina duplicati (≥ ${duplicateThreshold}%)`}
+                {scanningDuplicates ? "Ricerca duplicati…" : `Elimina duplicati (≥ ${duplicateThreshold}%)`}
               </AppButton>
             </div>
           </div>
           <div className="shot-grid">
             {screenshots.length === 0 ? (
-              <div className="pd">No screenshots captured yet.</div>
+              <div className="pd">Nessuno screenshot acquisito.</div>
             ) : (
               screenshots.map((shot) => (
                 <div className="shot" key={shot.id}>
@@ -838,16 +842,17 @@ export function SessionPage() {
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <button
                         type="button"
-                        className="btn btn-ghost btn-sm"
-                        style={{ padding: "2px 6px", fontSize: "11px", display: "flex", alignItems: "center", gap: "4px" }}
+                        className="btn btn-ghost btn-sm shot-edit-btn"
                         onClick={() => setAnnotatingScreenshot(shot)}
-                        title="Modifica screenshot, sposta click o aggiungi annotazioni"
+                        title="Modifica lo screenshot, sposta il click o aggiungi annotazioni"
                       >
-                        🎨 Modifica
+                        <Icon name="edit" size={13} /> Modifica
                       </button>
                       <button
                         type="button"
                         className="del"
+                        title="Elimina screenshot"
+                        aria-label="Elimina screenshot"
                         onClick={() =>
                           api
                             .deleteScreenshot(shot.id)
@@ -870,23 +875,23 @@ export function SessionPage() {
 
       {tab === "Documentation" ? (
         <div className="card panel">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", flexWrap: "wrap", gap: "10px" }}>
+          <div className="panel-head">
             <div>
-              <h3>Documentazione Generata</h3>
+              <h3>Documentazione generata</h3>
               <div className="pd">
-                Modifica il Markdown con la barra degli strumenti avanzata, inserisci screenshot o passaggi e visualizza l'anteprima live.
+                Modifica il testo con la barra degli strumenti, inserisci screenshot o passi e guarda l'anteprima in tempo reale.
               </div>
             </div>
-            <div style={{ display: "flex", gap: "8px", alignItems: "center", flexWrap: "wrap" }}>
+            <div className="panel-head-actions">
               <AppButton
                 size="sm"
                 kind="ghost"
                 icon="sparkles"
                 disabled={!markdown || translating || busy}
                 onClick={() => handleTranslateDocumentation("Italian")}
-                title="Traduci il solo testo della guida in Italiano (le immagini vengono isolate e ripristinate intatte)"
+                title="Traduce in italiano solo il testo della guida (le immagini restano invariate)"
               >
-                {translating ? "Traduzione in corso…" : "🌐 Traduci in Italiano (AI)"}
+                {translating ? "Traduzione in corso…" : "Traduci in italiano (AI)"}
               </AppButton>
               <AppButton
                 size="sm"
@@ -903,126 +908,22 @@ export function SessionPage() {
                 disabled={busy || translating || savingMarkdown}
                 onClick={() => handleSaveDocumentation(markdown)}
               >
-                {savingMarkdown ? "Salvataggio…" : "Salva Modifiche"}
+                {savingMarkdown ? "Salvataggio…" : "Salva modifiche"}
               </AppButton>
             </div>
           </div>
 
           {showTranslationLog && (
-            <div
-              style={{
-                marginTop: "12px",
-                marginBottom: "16px",
-                background: "#0d1117",
-                border: `1px solid ${
-                  translationStatus === "error"
-                    ? "rgba(239, 68, 68, 0.45)"
-                    : translationStatus === "success"
-                    ? "rgba(52, 211, 153, 0.45)"
-                    : "rgba(108, 198, 255, 0.4)"
-                }`,
-                borderRadius: "10px",
-                padding: "14px 16px",
-                boxShadow: "0 6px 20px rgba(0, 0, 0, 0.35)",
+            <LogPanel
+              status={translationStatus === "success" || translationStatus === "error" ? translationStatus : "running"}
+              messages={{
+                running: "Traduzione in corso (viene inviato solo il testo, le immagini restano invariate)…",
+                success: "Traduzione completata.",
+                error: "Errore durante la traduzione",
               }}
-            >
-              <div
-                style={{
-                  display: "flex",
-                  justifyContent: "space-between",
-                  alignItems: "center",
-                  marginBottom: "8px",
-                }}
-              >
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    fontWeight: 600,
-                    fontSize: "13px",
-                    color:
-                      translationStatus === "error"
-                        ? "#f87171"
-                        : translationStatus === "success"
-                        ? "#34d399"
-                        : "var(--ice)",
-                  }}
-                >
-                  {translationStatus === "translating" && (
-                    <span
-                      style={{
-                        display: "inline-block",
-                        width: "12px",
-                        height: "12px",
-                        border: "2px solid var(--ice)",
-                        borderTopColor: "transparent",
-                        borderRadius: "50%",
-                        animation: "spin 0.8s linear infinite",
-                      }}
-                    />
-                  )}
-                  {translationStatus === "success" && <Icon name="check" size={15} />}
-                  {translationStatus === "error" && <Icon name="alert" size={15} />}
-                  <span>
-                    {translationStatus === "translating"
-                      ? "Traduzione AI in corso (invio solo testo, immagini protette)..."
-                      : translationStatus === "success"
-                      ? "Traduzione completata con successo!"
-                      : "Errore durante la traduzione con il server AI"}
-                  </span>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowTranslationLog(false)}
-                  style={{
-                    background: "rgba(255, 255, 255, 0.08)",
-                    border: "none",
-                    borderRadius: "6px",
-                    color: "#8b949e",
-                    cursor: "pointer",
-                    padding: "3px 8px",
-                    fontSize: "11px",
-                  }}
-                >
-                  Chiudi log ✕
-                </button>
-              </div>
-
-              <div
-                style={{
-                  fontFamily: "var(--mono, monospace)",
-                  fontSize: "12px",
-                  lineHeight: "1.5",
-                  color: "#c9d1d9",
-                  maxHeight: "160px",
-                  overflowY: "auto",
-                  background: "rgba(0, 0, 0, 0.4)",
-                  borderRadius: "6px",
-                  padding: "10px 12px",
-                  display: "flex",
-                  flexDirection: "column",
-                  gap: "4px",
-                }}
-              >
-                {translationLogs.map((log, idx) => (
-                  <div
-                    key={idx}
-                    style={{
-                      color: log.includes("ERRORE")
-                        ? "#f87171"
-                        : log.includes("successo")
-                        ? "#34d399"
-                        : log.includes("Isolate")
-                        ? "#fbbf24"
-                        : "#e6edf3",
-                    }}
-                  >
-                    {log}
-                  </div>
-                ))}
-              </div>
-            </div>
+              logs={translationLogs}
+              onClose={() => setShowTranslationLog(false)}
+            />
           )}
 
           <div style={{ marginTop: "14px" }}>
@@ -1031,7 +932,7 @@ export function SessionPage() {
               onChange={handleMarkdownChange}
               screenshots={screenshots}
               disabled={busy || translating}
-              showSaveButton={true}
+              showSaveButton={false}
               saving={savingMarkdown}
               onSave={() => handleSaveDocumentation(markdown)}
               imageVersion={docImageVersion}
@@ -1074,13 +975,13 @@ export function SessionPage() {
 
       {tab === "Recording" ? (
         <div className="card panel">
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+          <div className="panel-head">
             <div>
-              <h3>Screen Recording</h3>
+              <h3>Registrazione dello schermo</h3>
               <div className="pd">
                 {selectedVideoMode === "full"
-                  ? "Video HD fluido a framerate continuo con audio microfono sincronizzato."
-                  : "Timelapse leggero a 1 fotogramma al secondo generato dai frame della sessione."}
+                  ? "Video HD fluido dell'intero schermo, con l'audio del microfono sincronizzato."
+                  : "Video accelerato leggero, a 1 fotogramma al secondo, creato dalle immagini della sessione."}
               </div>
             </div>
 
@@ -1089,17 +990,17 @@ export function SessionPage() {
                 type="button"
                 className={selectedVideoMode === "full" ? "on" : ""}
                 onClick={() => setSelectedVideoMode("full")}
-                title="Video HD continuo fluido con audio sincronizzato"
+                title="Video HD continuo con audio sincronizzato"
               >
-                🎥 Video HD (30 FPS) {fullVideoSrc ? "✓" : ""}
+                Video HD {fullVideoSrc ? "✓" : ""}
               </button>
               <button
                 type="button"
                 className={selectedVideoMode === "timelapse" ? "on" : ""}
                 onClick={() => setSelectedVideoMode("timelapse")}
-                title="Video timelapse a 1 fotogramma al secondo"
+                title="Video accelerato a 1 fotogramma al secondo"
               >
-                ⏱️ Timelapse (1 FPS) {timelapseVideoSrc ? "✓" : ""}
+                Video accelerato (1 FPS) {timelapseVideoSrc ? "✓" : ""}
               </button>
             </div>
           </div>
@@ -1139,7 +1040,7 @@ export function SessionPage() {
                   }}
                 >
                   {videoEncoding
-                    ? "Finalizzazione ed elaborazione video in background in corso…"
+                    ? "Elaborazione del video in corso…"
                     : "Nessun video registrato per questa modalità."}
                 </div>
               </div>

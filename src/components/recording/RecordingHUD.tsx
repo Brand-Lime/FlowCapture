@@ -106,7 +106,7 @@ export function RecordingHUD({
 
           return {
             id: e.id,
-            ts: new Date(e.timestamp_ms).toLocaleTimeString("en-US", { hour12: false }),
+            ts: new Date(e.timestamp_ms).toLocaleTimeString("it-IT", { hour12: false }),
             k: e.event_type.replaceAll("_", " "),
             v: val,
           };
@@ -162,9 +162,9 @@ export function RecordingHUD({
           <div className="hud-rec">
             <span className="pulse" />
             <div>
-              <div className="hr-t">Recording session</div>
+              <div className="hr-t">Registrazione in corso</div>
               <div className="hr-s" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
-                <span>Capturing screen, input & windows</span>
+                <span>Registro schermo, mouse, tastiera e finestre</span>
                 {recordAudio ? (
                   <span
                     style={{
@@ -176,7 +176,7 @@ export function RecordingHUD({
                       fontWeight: 600,
                     }}
                   >
-                    🎙️ {audioDevices.find((d) => d.deviceId === selectedMicId)?.label || "Mic on"}
+                    🎙️ {audioDevices.find((d) => d.deviceId === selectedMicId)?.label || "Microfono attivo"}
                   </span>
                 ) : null}
                 {highlightClicks ? (
@@ -190,7 +190,7 @@ export function RecordingHUD({
                       fontWeight: 600,
                     }}
                   >
-                    🎯 Click highlight
+                    🎯 Evidenzia click
                   </span>
                 ) : null}
               </div>
@@ -200,11 +200,11 @@ export function RecordingHUD({
           <div className="hud-stats">
             <div className="hud-stat">
               <div className="hv">{eventsCount.toLocaleString()}</div>
-              <div className="hl">events</div>
+              <div className="hl">eventi</div>
             </div>
             <div className="hud-stat">
               <div className="hv">{shotsCount}</div>
-              <div className="hl">screenshots</div>
+              <div className="hl">screenshot</div>
             </div>
           </div>
         </div>
@@ -223,8 +223,8 @@ export function RecordingHUD({
           {feed.length === 0 ? (
             <div className="fl">
               <span className="ft">--:--:--</span>
-              <span className="fk">listening…</span>
-              <span className="fv">waiting for activity</span>
+              <span className="fk">in ascolto…</span>
+              <span className="fv">in attesa di attività</span>
             </div>
           ) : null}
         </div>
@@ -249,7 +249,7 @@ export function RecordingHUD({
             </div>
           ) : (
             <span className="src">
-              <Icon name="monitor" size={15} /> {selectedMonitorName || "Primary Display"}
+              <Icon name="monitor" size={15} /> {selectedMonitorName || "Schermo principale"}
             </span>
           )}
 
@@ -259,7 +259,7 @@ export function RecordingHUD({
               <button
                 type="button"
                 onClick={onToggleMute}
-                title={isMuted ? "Riattiva Microfono" : "Muta Microfono"}
+                title={isMuted ? "Riattiva il microfono" : "Metti in muto il microfono"}
                 style={{
                   background: isMuted ? "#ef4444" : "rgba(255,255,255,0.1)",
                   color: isMuted ? "#fff" : "currentColor",
@@ -316,8 +316,9 @@ export function RecordingHUD({
               icon="camera"
               disabled={loading || isPaused}
               onClick={() => onMarkStep()}
+              title="Segna qui l'inizio di un nuovo passo importante (Ctrl+Shift+M)"
             >
-              Mark Step (⌘⇧M)
+              Segna passo
             </AppButton>
 
             <AppButton
@@ -327,7 +328,7 @@ export function RecordingHUD({
               onClick={() => onStop()}
               style={{ background: "#ff5f57", color: "#3a0b09", border: "none" }}
             >
-              Stop & Process
+              Ferma e salva
             </AppButton>
           </div>
         </div>

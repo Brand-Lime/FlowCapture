@@ -1,11 +1,19 @@
+import { AppButton } from "@/components/ui/AppButton";
 import { Icon } from "@/components/ui/Icon";
 
-const STAGES = [
-  { id: "timeline_builder", label: "Compressing raw events" },
-  { id: "screenshot_selector", label: "Detecting workflow steps" },
-  { id: "technical_writer", label: "Ranking & annotating screenshots" },
-  { id: "quality_reviewer", label: "Writing documentation with Claude" },
+export const STAGES = [
+  { id: "timeline_builder", label: "Ricostruzione della sequenza di azioni" },
+  { id: "screenshot_selector", label: "Scelta degli screenshot per ogni passo" },
+  { id: "technical_writer", label: "Scrittura della guida con l'AI" },
+  { id: "quality_reviewer", label: "Revisione finale" },
 ] as const;
+
+/** Italian label of a pipeline stage id (e.g. "technical_writer"). */
+export function stageLabel(stageId: string) {
+  if (stageId === "pipeline_queued") return "Avvio";
+  if (stageId === "completed") return "Completata";
+  return STAGES.find((stage) => stage.id === stageId)?.label ?? stageId.replaceAll("_", " ");
+}
 
 type ProcessingPanelProps = {
   activeStage?: string | null;
@@ -34,8 +42,8 @@ export function ProcessingPanel({
   return (
     <div className="proc" style={{ maxWidth: "600px", margin: "0 auto" }}>
       <div className="spinner" />
-      <h3>Generating documentation</h3>
-      <p>FlowCapture is turning your session into clean, step-by-step docs.</p>
+      <h3>Generazione della documentazione</h3>
+      <p>FlowCapture sta trasformando la sessione in una guida passo-passo.</p>
       <div className="steps">
         {STAGES.map((stage, index) => {
           const isDone = completedStages.includes(stage.id);
@@ -51,7 +59,7 @@ export function ProcessingPanel({
               {stage.label}
               {isFailed ? (
                 <span style={{ marginLeft: "auto", color: "var(--rose)", fontSize: 12 }}>
-                  Failed
+                  Non riuscito
                 </span>
               ) : null}
             </div>
@@ -61,61 +69,17 @@ export function ProcessingPanel({
 
       {onCancel && (
         <div style={{ marginTop: "16px", display: "flex", justifyContent: "center" }}>
-          <button
-            type="button"
-            onClick={onCancel}
-            style={{
-              display: "inline-flex",
-              alignItems: "center",
-              gap: "6px",
-              background: "rgba(239, 68, 68, 0.15)",
-              border: "1px solid rgba(239, 68, 68, 0.4)",
-              color: "#f87171",
-              borderRadius: "8px",
-              padding: "8px 16px",
-              fontSize: "13px",
-              fontWeight: 500,
-              cursor: "pointer",
-              transition: "all 0.2s ease",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.25)";
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = "rgba(239, 68, 68, 0.15)";
-            }}
-          >
-            <Icon name="x" size={14} />
-            Annulla Generazione
-          </button>
+          <AppButton kind="danger" size="sm" icon="x" onClick={onCancel}>
+            Annulla generazione
+          </AppButton>
         </div>
       )}
 
       {logs.length > 0 && (
-        <div
-          style={{
-            marginTop: "20px",
-            width: "100%",
-            textAlign: "left",
-            background: "#0d1117",
-            border: "1px solid rgba(255, 255, 255, 0.12)",
-            borderRadius: "8px",
-            padding: "12px",
-            fontSize: "12px",
-            fontFamily: "var(--mono, monospace)",
-            color: "#8b949e",
-            maxHeight: "180px",
-            overflowY: "auto",
-            display: "flex",
-            flexDirection: "column",
-            gap: "4px",
-          }}
-        >
-          <div style={{ fontWeight: 600, color: "#c9d1d9", marginBottom: "4px", borderBottom: "1px solid #21262d", paddingBottom: "4px" }}>
-            Real-time Pipeline Log:
-          </div>
+        <div className="log-box proc-log">
+          <div className="log-box-title">Avanzamento in tempo reale</div>
           {logs.map((log, i) => (
-            <div key={i} style={{ color: log.includes("ERROR") ? "#f85149" : "#e6edf3" }}>
+            <div key={i} className={log.includes("ERRORE") ? "log-line error" : "log-line"}>
               {log}
             </div>
           ))}

@@ -134,7 +134,7 @@ export function AnnotationOverlay({
                       fontWeight="600"
                       fontFamily="sans-serif"
                     >
-                      Modifica Click (clicca)
+                      Modifica click (clicca)
                     </text>
                   </g>
                 )}
@@ -362,10 +362,10 @@ export function AnnotationOverlay({
               type="button"
               className="ao-btn"
               onClick={onChangeScreenshot}
-              title="Cambia l'immagine associata a questo step (oppure tasto destro sullo screenshot)"
+              title="Cambia l'immagine associata a questo passo (oppure tasto destro sullo screenshot)"
             >
               <span>🖼️</span>
-              <span>Cambia Immagine</span>
+              <span>Cambia immagine</span>
             </button>
           ) : null}
           {onOpenEditor ? (
@@ -373,10 +373,10 @@ export function AnnotationOverlay({
               type="button"
               className="ao-btn primary"
               onClick={onOpenEditor}
-              title="Apri l'editor per aggiungere o modificare badge, rettangoli, evidenziazioni o click"
+              title="Apri l'editor per aggiungere o modificare numeri, rettangoli, evidenziazioni o click"
             >
               <span>🎨</span>
-              <span>Annotazioni {items.length > 0 ? `(${items.length})` : ""}</span>
+              <span>Annota {items.length > 0 ? `(${items.length})` : ""}</span>
             </button>
           ) : null}
         </div>

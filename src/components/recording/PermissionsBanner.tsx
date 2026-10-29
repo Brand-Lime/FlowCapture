@@ -41,7 +41,7 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
       <div className="banner">
         <Icon name="shield" />
         <span className="bt">
-          Recording permissions look good. You can start capturing workflows across apps.
+          Permessi di registrazione a posto: puoi registrare il lavoro in tutte le applicazioni.
         </span>
       </div>
     );
@@ -54,15 +54,15 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
     >
       <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
         <Icon name="alert" style={{ color: "var(--rose)" }} />
-        <h3 style={{ color: "var(--rose)" }}>Recording permissions required</h3>
+        <h3 style={{ color: "var(--rose)" }}>Servono i permessi di registrazione</h3>
       </div>
       <div className="sub">{permissions.message}</div>
       <div className="sub" style={{ marginTop: 14 }}>
-        Screen Recording: {permissions.screen_recording_granted ? "Granted" : "Missing"}
+        Registrazione schermo: {permissions.screen_recording_granted ? "concesso" : "mancante"}
         <br />
-        Accessibility: {permissions.accessibility_granted ? "Granted" : "Missing"}
+        Accessibilità: {permissions.accessibility_granted ? "concesso" : "mancante"}
         <br />
-        Look for in System Settings:{" "}
+        Nelle impostazioni di sistema cerca:{" "}
         {permissions.settings_app_names.map((name) => `\`${name}\``).join(", ")}
       </div>
       {permissions.is_dev_mode ? (
@@ -75,9 +75,9 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
             borderRadius: "var(--r-sm)",
           }}
         >
-          Dev mode uses the `{permissions.process_name}` binary, not the FlowCapture app
-          bundle. If it is missing from the list, click Request Permissions while FlowCapture
-          is focused, then use Reveal App in Finder and the + button to add it manually.
+          In modalità sviluppo viene usato l'eseguibile `{permissions.process_name}`, non l'app
+          FlowCapture. Se non è nell'elenco, premi "Richiedi permessi" con FlowCapture in primo piano,
+          poi usa "Mostra l'app nel Finder" e il pulsante + per aggiungerlo a mano.
         </div>
       ) : null}
       <div className="sub mono" style={{ marginTop: 10, wordBreak: "break-all" }}>
@@ -92,7 +92,7 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
       </ul>
       <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 18 }}>
         <AppButton kind="primary" disabled={loading} onClick={() => prepare()}>
-          Request Permissions
+          Richiedi permessi
         </AppButton>
         <AppButton
           disabled={loading}
@@ -105,7 +105,7 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
             }
           }}
         >
-          Reveal App in Finder
+          Mostra l'app nel Finder
         </AppButton>
         <AppButton
           disabled={loading}
@@ -119,7 +119,7 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
             }
           }}
         >
-          Open Screen Recording Settings
+          Apri impostazioni registrazione schermo
         </AppButton>
         <AppButton
           disabled={loading}
@@ -133,10 +133,10 @@ export function PermissionsBanner({ onPermissionsChange }: PermissionsBannerProp
             }
           }}
         >
-          Open Accessibility Settings
+          Apri impostazioni accessibilità
         </AppButton>
         <AppButton disabled={loading} onClick={() => refresh()}>
-          Check Again
+          Ricontrolla
         </AppButton>
       </div>
     </div>

@@ -203,7 +203,7 @@ fn capture_with_xcap(output_path: &Path) -> Result<()> {
         .context("xcap could not list monitors")?
         .into_iter()
         .next()
-        .context("no monitor found")?;
+        .context("nessuno schermo trovato")?;
 
     let image = monitor
         .capture_image()

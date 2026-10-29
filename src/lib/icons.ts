@@ -77,6 +77,19 @@ export function statusDotClass(status: string) {
   return "ready";
 }
 
+const STATUS_LABELS: Record<string, string> = {
+  idle: "in attesa",
+  recording: "in registrazione",
+  processing: "in elaborazione",
+  ready: "pronta",
+  exported: "esportata",
+};
+
+/** Italian label of a session status ("ready" → "pronta"). */
+export function statusLabel(status: string) {
+  return STATUS_LABELS[status] ?? status;
+}
+
 export function statusBadgeClass(status: string) {
   return statusDotClass(status);
 }

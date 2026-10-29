@@ -19,7 +19,8 @@ import { useRecordingContext } from "@/context/RecordingContext";
 import { useSessionsContext } from "@/context/SessionsContext";
 import { api, type Session } from "@/lib/api";
 import { MicrophoneError } from "@/lib/microphone";
-import { statusBadgeClass } from "@/lib/icons";
+import { statusBadgeClass, statusLabel } from "@/lib/icons";
+import { SettingSwitch } from "@/components/ui/SettingSwitch";
 import { formatDuration, formatTimestamp } from "@/lib/utils";
 
 export function HomePage() {
@@ -134,7 +135,7 @@ export function HomePage() {
         title: "Seleziona sessione FlowCapture da importare",
         filters: [
           {
-            name: "FlowCapture Session (*.flowcapture, *.zip)",
+            name: "Sessione FlowCapture (*.flowcapture, *.zip)",
             extensions: ["flowcapture", "zip"],
           },
         ],
@@ -215,170 +216,101 @@ export function HomePage() {
       <div className="home-hero home-top">
         <div>
           <div className="kick">FLOWCAPTURE</div>
-          <h1>Turn workflows into documentation</h1>
+          <h1>Trasforma il tuo lavoro in una guida</h1>
           <p className="lead">
-            Record screen activity, capture input events, and generate Markdown, HTML,
-            PDF and video exports with your own AI provider.
+            Registra lo schermo, i click e la tastiera e ottieni una guida passo-passo in Markdown, HTML,
+            PDF o video, scritta dal servizio AI configurato.
           </p>
         </div>
         <span className="plat">
-          <Icon name="monitor" size={15} /> Platform: {platform || "detecting…"}
+          <Icon name="monitor" size={15} /> Sistema: {platform || "rilevamento…"}
         </span>
       </div>
 
       <PermissionsBanner onPermissionsChange={handlePermissionsChange} />
 
       <div className="card rec-card">
-        <h3>Recording</h3>
+        <h3>Registrazione</h3>
         <p>
-          Start a new session to record your screen, mouse activity, keyboard input, and
-          window changes.
+          Avvia una nuova sessione per registrare lo schermo, il mouse, la tastiera e i cambi di finestra.
         </p>
 
-        <div
-          style={{
-            margin: "18px 0",
-            padding: "14px 16px",
-            background: "rgba(255,255,255,0.03)",
-            border: "1px solid var(--hair)",
-            borderRadius: "8px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "12px",
-          }}
-        >
-          {/* Schermo da registrare */}
-          <div style={{ borderBottom: "1px solid var(--hair)", paddingBottom: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "16px" }}>🖥️</span>
-                <div>
-                  <div style={{ fontWeight: 500, fontSize: "13.5px" }}>
-                    Schermo da registrare {monitors.length > 1 ? `(${monitors.length} schermi rilevati)` : ""}
-                  </div>
-                  <div style={{ fontSize: "12px", color: "var(--dim)" }}>
-                    Scegli quale monitor catturare durante la sessione di lavoro
-                  </div>
-                </div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <select
-                  id="home-monitor-select"
-                  value={selectedMonitorId}
-                  onChange={(e) => setSelectedMonitorId(e.target.value)}
-                  style={{
-                    background: "var(--surface)",
-                    color: "var(--text)",
-                    border: "1px solid var(--hair)",
-                    borderRadius: "6px",
-                    padding: "5px 10px",
-                    fontSize: "12.5px",
-                    maxWidth: "280px",
-                  }}
-                >
-                  {monitors.map((mon, idx) => (
-                    <option key={mon.id || idx} value={mon.id}>
-                      {mon.name} {mon.is_primary ? "(Principale)" : ""} · {mon.width}x{mon.height}
-                    </option>
-                  ))}
-                  {monitors.length === 0 && (
-                    <option value="">Schermo Principale (Predefinito)</option>
-                  )}
-                </select>
-                <AppButton
-                  size="sm"
-                  kind="ghost"
-                  onClick={() => refreshMonitors()}
-                  title="Rileva schermi"
-                >
-                  <Icon name="refresh" size={13} />
-                </AppButton>
-              </div>
-            </div>
-          </div>
-
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "16px" }}>🎯</span>
+        <div className="rec-options">
+          <div className="field setting-row rec-option">
+            <div className="setting-label">
+              <span className="setting-emoji">🖥️</span>
               <div>
-                <div style={{ fontWeight: 500, fontSize: "13.5px" }}>Evidenzia click negli screenshot</div>
-                <div style={{ fontSize: "12px", color: "var(--dim)" }}>Disegna un indicatore visivo ad alto contrasto dove viene premuto il mouse</div>
+                <label htmlFor="home-monitor-select">
+                  Schermo da registrare {monitors.length > 1 ? `(${monitors.length} schermi rilevati)` : ""}
+                </label>
+                <div className="setting-desc">Scegli quale monitor registrare durante la sessione</div>
               </div>
             </div>
-            <div className="seg">
-              <button
-                type="button"
-                className={highlightClicks ? "on" : ""}
-                onClick={() => setHighlightClicks(true)}
+            <div className="settings-device-row">
+              <select
+                id="home-monitor-select"
+                className="settings-select rec-select"
+                value={selectedMonitorId}
+                onChange={(e) => setSelectedMonitorId(e.target.value)}
               >
-                On
-              </button>
-              <button
-                type="button"
-                className={!highlightClicks ? "on" : ""}
-                onClick={() => setHighlightClicks(false)}
-              >
-                Off
-              </button>
+                {monitors.map((mon, idx) => (
+                  <option key={mon.id || idx} value={mon.id}>
+                    {mon.name} {mon.is_primary ? "(Principale)" : ""} · {mon.width}x{mon.height}
+                  </option>
+                ))}
+                {monitors.length === 0 && <option value="">Schermo principale (predefinito)</option>}
+              </select>
+              <AppButton
+                size="sm"
+                kind="ghost"
+                icon="refresh"
+                onClick={() => refreshMonitors()}
+                title="Rileva schermi"
+                aria-label="Rileva schermi"
+              />
             </div>
           </div>
 
-          <div style={{ borderTop: "1px solid var(--hair)", paddingTop: "12px" }}>
-            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <span style={{ fontSize: "16px" }}>🎙️</span>
-                <div>
-                  <div style={{ fontWeight: 500, fontSize: "13.5px" }}>Registra audio microfono</div>
-                  <div style={{ fontSize: "12px", color: "var(--dim)" }}>Cattura la tua voce e le spiegazioni durante la registrazione</div>
-                </div>
-              </div>
-              <div className="seg">
-                <button
-                  type="button"
-                  className={recordAudio ? "on" : ""}
-                  onClick={() => setRecordAudio(true)}
-                >
-                  On
-                </button>
-                <button
-                  type="button"
-                  className={!recordAudio ? "on" : ""}
-                  onClick={() => setRecordAudio(false)}
-                >
-                  Off
-                </button>
-              </div>
-            </div>
+          <SettingSwitch
+            className="rec-option"
+            emoji="🎯"
+            label="Evidenzia click negli screenshot"
+            description="Disegna un indicatore ad alto contrasto nel punto in cui premi il mouse"
+            value={highlightClicks}
+            onChange={setHighlightClicks}
+          />
+
+          <div className="rec-option-group">
+            <SettingSwitch
+              className="rec-option"
+              emoji="🎙️"
+              label="Registra audio microfono"
+              description="Registra la tua voce e le tue spiegazioni durante il lavoro"
+              value={recordAudio}
+              onChange={setRecordAudio}
+            />
 
             {recordAudio ? (
-              <div style={{ marginTop: "12px", paddingLeft: "26px", display: "flex", flexDirection: "column", gap: "10px" }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
-                  <label htmlFor="mic-select" style={{ fontSize: "12.5px", color: "var(--text-2)", minWidth: "120px" }}>
-                    Scelta Microfono:
-                  </label>
+              <div className="rec-suboptions">
+                <div className="settings-inline-field">
+                  <label htmlFor="mic-select">Microfono:</label>
                   <select
                     id="mic-select"
+                    className="settings-select rec-select"
                     value={selectedMicId}
                     onChange={(e) => setSelectedMicId(e.target.value)}
-                    style={{
-                      background: "var(--surface)",
-                      color: "var(--text)",
-                      border: "1px solid var(--hair)",
-                      padding: "6px 12px",
-                      borderRadius: "6px",
-                      fontSize: "13px",
-                      minWidth: "220px",
-                    }}
                   >
-                    <option value="">Microfono Predefinito</option>
+                    <option value="">Microfono predefinito</option>
                     {audioDevices.map((device, idx) => (
                       <option key={device.deviceId || idx} value={device.deviceId}>
                         {device.label || `Microfono ${idx + 1}`}
                       </option>
                     ))}
                   </select>
-                  <button
-                    type="button"
+                  <AppButton
+                    size="sm"
+                    kind="ghost"
+                    icon="refresh"
                     onClick={() => {
                       navigator.mediaDevices
                         ?.getUserMedia({ audio: true })
@@ -388,17 +320,9 @@ export function HomePage() {
                         .catch(() => undefined)
                         .finally(() => refreshAudioDevices());
                     }}
-                    style={{
-                      background: "transparent",
-                      border: "none",
-                      color: "var(--mint)",
-                      fontSize: "12px",
-                      cursor: "pointer",
-                      textDecoration: "underline",
-                    }}
                   >
                     Aggiorna lista
-                  </button>
+                  </AppButton>
                 </div>
 
                 {audioDevices.length === 0 ? (
@@ -406,7 +330,7 @@ export function HomePage() {
                     <span>🎙️</span>
                     <div className="warn-card-body">
                       <strong>Nessun microfono rilevato.</strong> Collega un microfono o una cuffia con microfono e
-                      premi "Aggiorna lista". Se non ti serve l'audio, metti "Registra audio microfono" su Off.
+                      premi "Aggiorna lista". Se non ti serve l'audio, metti "Registra audio microfono" su Disattivo.
                     </div>
                   </div>
                 ) : savedMicMissing ? (
@@ -424,48 +348,24 @@ export function HomePage() {
                   onDevicesChanged={() => void refreshAudioDevices()}
                 />
 
-                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-                  <div style={{ fontSize: "12.5px", color: "var(--text-2)" }}>
-                    Trascrizione audio automatica (AI):
-                  </div>
-                  <div className="seg">
-                    <button
-                      type="button"
-                      className={transcribeAudio ? "on" : ""}
-                      onClick={() => setTranscribeAudio(true)}
-                    >
-                      Attiva
-                    </button>
-                    <button
-                      type="button"
-                      className={!transcribeAudio ? "on" : ""}
-                      onClick={() => setTranscribeAudio(false)}
-                    >
-                      Disattiva
-                    </button>
-                  </div>
-                </div>
+                <SettingSwitch
+                  className="rec-option rec-option-sub"
+                  label="Trascrizione audio automatica (AI)"
+                  value={transcribeAudio}
+                  onChange={setTranscribeAudio}
+                />
 
                 {transcribeAudio && (
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-                    <label htmlFor="home-trans-lang" style={{ fontSize: "12.5px", color: "var(--text-2)" }}>
-                      Lingua Trascrizione:
-                    </label>
+                  <div className="settings-inline-field">
+                    <label htmlFor="home-trans-lang">Lingua trascrizione:</label>
                     <select
                       id="home-trans-lang"
+                      className="settings-select rec-select"
                       value={transcriptionLanguage}
                       onChange={async (e) => {
                         const val = e.target.value;
                         setTranscriptionLanguage(val);
                         await api.setSetting("transcription_language", val);
-                      }}
-                      style={{
-                        background: "var(--surface)",
-                        color: "var(--text)",
-                        border: "1px solid var(--hair)",
-                        padding: "4px 8px",
-                        borderRadius: "6px",
-                        fontSize: "12px",
                       }}
                     >
                       <option value="it">Italiano (it)</option>
@@ -481,54 +381,34 @@ export function HomePage() {
             ) : null}
           </div>
 
-          <div style={{ borderTop: "1px solid var(--hair)", paddingTop: "12px", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "10px" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span style={{ fontSize: "16px" }}>📸</span>
-              <div>
-                <div style={{ fontWeight: 500, fontSize: "13.5px" }}>Screenshot su ogni evento (Modalità densa)</div>
-                <div style={{ fontSize: "12px", color: "var(--dim)" }}>Cattura uno screenshot non solo ai click ma anche per tastiera e scroll</div>
-              </div>
-            </div>
-            <div className="seg">
-              <button
-                type="button"
-                className={captureAllEvents ? "on" : ""}
-                onClick={async () => {
-                  setCaptureAllEvents(true);
-                  await api.setSetting("capture_all_events", "true");
-                }}
-              >
-                On
-              </button>
-              <button
-                type="button"
-                className={!captureAllEvents ? "on" : ""}
-                onClick={async () => {
-                  setCaptureAllEvents(false);
-                  await api.setSetting("capture_all_events", "false");
-                }}
-              >
-                Off
-              </button>
-            </div>
-          </div>
+          <SettingSwitch
+            className="rec-option"
+            emoji="📸"
+            label="Screenshot su ogni evento (modalità densa)"
+            description="Cattura uno screenshot non solo ai click ma anche per tastiera e scorrimento"
+            value={captureAllEvents}
+            onChange={async (next) => {
+              setCaptureAllEvents(next);
+              await api.setSetting("capture_all_events", String(next));
+            }}
+          />
         </div>
 
-        <div className="rec-actions" style={{ display: "flex", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+        <div className="rec-actions">
           <AppButton
             kind="primary"
             icon="play"
             disabled={loading || !canRecord}
             onClick={() => void handleStart()}
           >
-            Start Recording
+            Avvia registrazione
           </AppButton>
           <AppButton
             icon="folder"
             disabled={importing}
             onClick={() => void handleImportSession()}
           >
-            {importing ? "Importazione…" : "Importa Sessione (.flowcapture)"}
+            {importing ? "Importazione…" : "Importa sessione (.flowcapture)"}
           </AppButton>
           {isAdmin ? (
             <AppButton
@@ -541,8 +421,8 @@ export function HomePage() {
               {importing ? "Importazione…" : "Importa da cartella (admin)"}
             </AppButton>
           ) : null}
-          <span style={{ fontFamily: "var(--mono)", fontSize: 12.5, color: "var(--dim)" }}>
-            ⌘⇧R
+          <span className="kbd-hint" title="Scorciatoia da tastiera per avviare la registrazione">
+            Ctrl+Shift+R
           </span>
         </div>
       </div>
@@ -571,46 +451,19 @@ export function HomePage() {
       ) : null}
 
       {error ? (
-        <div
-          className="card set-card"
-          style={{
-            marginTop: 18,
-            borderColor: "rgba(255,138,138,.45)",
-            background: "rgba(255,100,100,0.06)",
-            color: "var(--rose)",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            gap: "12px",
-          }}
-        >
-          <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div className="card set-card error-card">
+          <div className="error-card-body">
             <Icon name="alert" size={18} />
-            <span style={{ fontSize: "13px", lineHeight: "1.4", whiteSpace: "pre-line" }}>{error}</span>
+            <span style={{ whiteSpace: "pre-line" }}>{error}</span>
           </div>
-          <button
-            type="button"
-            onClick={() => setError(null)}
-            style={{
-              background: "rgba(255, 255, 255, 0.08)",
-              border: "none",
-              borderRadius: "6px",
-              color: "var(--rose)",
-              cursor: "pointer",
-              padding: "4px 8px",
-              fontSize: "13px",
-              fontWeight: "bold",
-              flexShrink: 0,
-            }}
-            title="Chiudi messaggio di errore"
-          >
+          <button type="button" className="error-card-close" onClick={() => setError(null)} title="Chiudi messaggio di errore">
             ✕
           </button>
         </div>
       ) : null}
 
       <div className="sec-row">
-        <h2>Recent Sessions</h2>
+        <h2>Sessioni recenti</h2>
         <AppButton
           size="sm"
           icon="refresh"
@@ -618,14 +471,14 @@ export function HomePage() {
           disabled={refreshing}
           onClick={() => refresh()}
         >
-          {refreshing ? "Refreshing…" : "Refresh"}
+          {refreshing ? "Aggiornamento…" : "Aggiorna"}
         </AppButton>
       </div>
       <div className="sess-list">
         {sessions.length === 0 ? (
           <div className="card panel">
             <div className="pd">
-              No sessions yet. Start your first recording to build documentation.
+              Nessuna sessione. Avvia la prima registrazione per creare una guida.
             </div>
           </div>
         ) : (
@@ -650,7 +503,7 @@ export function HomePage() {
                 <div className="stm">
                   {formatTimestamp(session.started_at)}
                   <span className={`badge ${statusBadgeClass(session.status)}`}>
-                    {session.status}
+                    {statusLabel(session.status)}
                   </span>
                   <span>{formatDuration(session.duration)}</span>
                 </div>
@@ -658,26 +511,13 @@ export function HomePage() {
               <div className="sdur">{formatDuration(session.duration)}</div>
               <button
                 type="button"
+                className="sess-delete"
                 title="Elimina sessione"
+                aria-label="Elimina sessione"
                 onClick={(e) => {
                   e.stopPropagation();
                   setSessionToDelete(session);
                 }}
-                style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#ef4444",
-                  padding: "6px",
-                  cursor: "pointer",
-                  borderRadius: "4px",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  opacity: 0.7,
-                  transition: "opacity 0.2s",
-                }}
-                onMouseEnter={(e) => ((e.currentTarget as HTMLElement).style.opacity = "1")}
-                onMouseLeave={(e) => ((e.currentTarget as HTMLElement).style.opacity = "0.7")}
               >
                 <Icon name="trash" size={16} />
               </button>
@@ -688,9 +528,9 @@ export function HomePage() {
 
       <ConfirmModal
         isOpen={Boolean(sessionToDelete)}
-        title="Elimina Sessione"
+        title="Elimina sessione"
         message={`Sei sicuro di voler eliminare definitivamente la sessione "${sessionToDelete?.title}"?\n\nTutti gli eventi, gli screenshot e i file associati verranno rimossi in modo permanente.`}
-        confirmLabel="Elimina Sessione"
+        confirmLabel="Elimina sessione"
         cancelLabel="Annulla"
         kind="danger"
         isLoading={deletingSession}
@@ -734,7 +574,7 @@ export function HomePage() {
       <ConfirmModal
         isOpen={Boolean(micIssue)}
         title="Problema con il microfono"
-        message={`${micIssue ?? ""}\n\nPuoi risolvere il problema e premere di nuovo "Start Recording" (usa "Prova microfono" per controllare), oppure registrare solo lo schermo, senza la tua voce.`}
+        message={`${micIssue ?? ""}\n\nPuoi risolvere il problema e premere di nuovo "Avvia registrazione" (usa "Prova microfono" per controllare), oppure registrare solo lo schermo, senza la tua voce.`}
         confirmLabel="Registra senza audio"
         cancelLabel="Annulla"
         kind="warning"

@@ -41,27 +41,27 @@ export function ReplayPanel({
     <div className="card panel">
       <div className="rp-head">
         <div>
-          <h3>Session Replay</h3>
+          <h3>Passi della guida</h3>
           <div className="pd">
-            Riproduci e modifica i passaggi generati, con rendering Markdown e annotazioni interattive.
+            Scorri e modifica i passi generati uno alla volta, con il testo formattato e le annotazioni.
           </div>
         </div>
         {steps.length === 0 && hasDocumentation ? (
           <AppButton size="sm" kind="primary" icon="sparkles" onClick={replay.syncStepsFromDoc} disabled={replay.syncing}>
-            Sincronizza Passi dalla Guida
+            Recupera i passi dalla guida
           </AppButton>
         ) : null}
       </div>
 
       {steps.length === 0 || !step ? (
         <div className="rp-empty">
-          <div className="rp-empty-msg">Nessun passaggio strutturato trovato per questa sessione.</div>
+          <div className="rp-empty-msg">Nessun passo trovato per questa sessione.</div>
           {hasDocumentation ? (
             <AppButton size="sm" kind="primary" onClick={replay.syncStepsFromDoc} disabled={replay.syncing}>
-              Recupera automaticamente i Passi dal Markdown
+              Recupera i passi dalla guida
             </AppButton>
           ) : (
-            <div className="rp-empty-sub">Genera la documentazione per popolare i passaggi di replay.</div>
+            <div className="rp-empty-sub">Genera la documentazione per vedere qui i passi.</div>
           )}
         </div>
       ) : (
@@ -76,7 +76,7 @@ export function ReplayPanel({
               </div>
               {!replay.editing ? (
                 <button type="button" className="rp-link-btn" onClick={replay.startEditing}>
-                  ✏️ Modifica Testo Passo
+                  ✏️ Modifica testo del passo
                 </button>
               ) : (
                 <div className="rp-shot-tools">
@@ -84,7 +84,7 @@ export function ReplayPanel({
                     Annulla
                   </button>
                   <button type="button" className="rp-save-btn" onClick={replay.saveEditing} disabled={replay.saving}>
-                    {replay.saving ? "Salvataggio..." : "Salva"}
+                    {replay.saving ? "Salvataggio…" : "Salva"}
                   </button>
                 </div>
               )}
@@ -93,17 +93,17 @@ export function ReplayPanel({
             {replay.editing ? (
               <div className="rp-edit">
                 <div>
-                  <div className="rp-edit-label">Titolo del Passo:</div>
+                  <div className="rp-edit-label">Titolo del passo:</div>
                   <input
                     type="text"
                     className="rp-edit-input"
                     value={replay.editTitle}
                     onChange={(e) => replay.setEditTitle(e.target.value)}
-                    placeholder="Titolo del passo..."
+                    placeholder="Titolo del passo…"
                   />
                 </div>
                 <div>
-                  <div className="rp-edit-label">Descrizione (Editor Markdown completo, anteprima modificabile & zoom):</div>
+                  <div className="rp-edit-label">Descrizione:</div>
                   <MarkdownEditor
                     value={replay.editDesc}
                     onChange={replay.setEditDesc}
@@ -190,7 +190,7 @@ export function ReplayPanel({
                   onClick={replay.openScreenshotPicker}
                   title="Seleziona un altro screenshot tra quelli acquisiti"
                 >
-                  🖼️ Cambia Immagine
+                  🖼️ Cambia immagine
                 </button>
                 {screenshot ? (
                   <button
@@ -199,7 +199,7 @@ export function ReplayPanel({
                     onClick={() => replay.openAnnotations(null)}
                     title="Modifica questo screenshot, sposta click o aggiungi annotazioni grafiche"
                   >
-                    🎨 Modifica / Evidenzia Step
+                    🎨 Annota
                   </button>
                 ) : null}
               </div>
@@ -207,10 +207,10 @@ export function ReplayPanel({
 
             <div className="rp-nav">
               <AppButton size="sm" disabled={!replay.hasPrev} onClick={replay.goPrev}>
-                Previous
+                Passo precedente
               </AppButton>
               <AppButton size="sm" kind="primary" disabled={!replay.hasNext} onClick={replay.goNext}>
-                Next step
+                Passo successivo
               </AppButton>
               <span className="rp-counter">
                 {replay.index + 1} / {steps.length}
@@ -241,7 +241,7 @@ export function ReplayPanel({
         <ImageLightbox
           src={convertFileSrc(screenshot.path)}
           alt={step.title}
-          caption={`Step ${replay.index + 1} di ${steps.length} · ${step.title}`}
+          caption={`Passo ${replay.index + 1} di ${steps.length} · ${step.title}`}
           overlay={
             <AnnotationOverlay
               items={replay.annotations}

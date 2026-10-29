@@ -4,9 +4,9 @@
 
 ## Prima di iniziare
 
-FlowCapture registra quello che fai sul computer (schermo, click, tastiera e, se vuoi, la tua voce) e lo trasforma in una guida passo-passo. Tutte le impostazioni si trovano nella pagina **Home**, nel riquadro **Recording**.
+FlowCapture registra quello che fai sul computer (schermo, click, tastiera e, se vuoi, la tua voce) e lo trasforma in una guida passo-passo. Tutte le impostazioni si trovano nella pagina **Home**, nel riquadro **Registrazione**.
 
-> **Obbligatorio:** per registrare devi essere collegato alla **rete Univet** (in ufficio) oppure alla **VPN Univet** (da casa o fuori ufficio). Senza la rete o la VPN la registrazione non viene salvata nella cartella condivisa. Collegati **prima** di premere Start Recording.
+> **Obbligatorio:** per registrare devi essere collegato alla **rete Univet** (in ufficio) oppure alla **VPN Univet** (da casa o fuori ufficio). Senza la rete o la VPN la registrazione non viene salvata nella cartella condivisa. Collegati **prima** di premere **Avvia registrazione**.
 
 Prima di registrare controlla queste tre cose:
 
@@ -29,12 +29,12 @@ Se hai un solo monitor non devi fare niente: è già selezionato.
 
 ## Passo 2 – Attiva "Evidenzia click" e "Screenshot su ogni evento"
 
-Queste due opzioni vanno sempre messe su **On**. Ogni opzione ha due pulsanti, **On** e **Off**: quello scelto è evidenziato.
+Queste due opzioni vanno sempre messe su **Attivo**. Ogni opzione ha due pulsanti, **Attivo** e **Disattivo**: quello scelto è evidenziato.
 
-1. Riga 🎯 **Evidenzia click negli screenshot** → premi **On**. Così nelle immagini compare un cerchio colorato nel punto dove hai cliccato.
-2. Riga 📸 **Screenshot su ogni evento (Modalità densa)** → premi **On**. Così FlowCapture fa una foto dello schermo anche quando scrivi con la tastiera o scorri la pagina, non solo quando clicchi.
+1. Riga 🎯 **Evidenzia click negli screenshot** → premi **Attivo**. Così nelle immagini compare un cerchio colorato nel punto dove hai cliccato.
+2. Riga 📸 **Screenshot su ogni evento (modalità densa)** → premi **Attivo**. Così FlowCapture fa una foto dello schermo anche quando scrivi con la tastiera o scorri la pagina, non solo quando clicchi.
 
-Le due scelte restano salvate: la volta successiva le trovi già su On. Controllale comunque prima di ogni registrazione.
+Le due scelte restano salvate: la volta successiva le trovi già su Attivo. Controllale comunque prima di ogni registrazione.
 
 ## Passo 3 – Attiva il microfono, sceglilo e provalo
 
@@ -42,14 +42,14 @@ La voce va registrata sempre: FlowCapture registra la tua voce mentre spieghi co
 
 **Attiva il microfono**
 
-1. Riga 🎙️ **Registra audio microfono** → premi **On**.
-2. Sotto compaiono altre opzioni: **Scelta Microfono**, **Prova microfono** e **Trascrizione audio automatica (AI)**.
+1. Riga 🎙️ **Registra audio microfono** → premi **Attivo**.
+2. Sotto compaiono altre opzioni: **Microfono**, **Prova microfono** e **Trascrizione audio automatica (AI)**.
 
 **Scegli il microfono giusto**
 
-1. Apri il menu **Scelta Microfono**.
-2. Scegli il microfono che userai (per esempio il nome della tua cuffia). Se non sai quale scegliere, lascia **Microfono Predefinito**.
-3. Se il microfono non è nella lista, collegalo e premi **Aggiorna lista** (la scritta sottolineata accanto al menu).
+1. Apri il menu **Microfono**.
+2. Scegli il microfono che userai (per esempio il nome della tua cuffia). Se non sai quale scegliere, lascia **Microfono predefinito**.
+3. Se il microfono non è nella lista, collegalo e premi **Aggiorna lista** (il pulsante accanto al menu).
 
 **Fai la prova (fallo sempre prima di registrare)**
 
@@ -61,26 +61,26 @@ La voce va registrata sempre: FlowCapture registra la tua voce mentre spieghi co
     - ⚠️ **Non è stato sentito nessun suono** → controlla che la cuffia non sia in muto (spesso c'è un tasto sul filo o sulla cuffia), che nella lista sia scelto il microfono giusto, poi rifai la prova.
     - ❌ Messaggio rosso → leggi cosa dice, sistema il problema e rifai la prova.
 
-**Trascrizione audio automatica (AI)**: lasciala su **Attiva** e con lingua **Italiano (it)**, a meno che il team IT ti dica diversamente.
+**Trascrizione audio automatica (AI)**: è su **Disattivo** di partenza; lasciala così, a meno che il team IT ti dica diversamente. Se la attivi, scegli la lingua **Italiano (it)**.
 
-Non mettere mai **Registra audio microfono** su **Off**: la voce va sempre registrata, quindi controlla sempre il microfono con **Prova microfono** prima di iniziare.
+Non mettere mai **Registra audio microfono** su **Disattivo**: la voce va sempre registrata, quindi controlla sempre il microfono con **Prova microfono** prima di iniziare.
 
 ## Passo 4 – Avvia la registrazione
 
 Prima di tutto controlla di essere collegato alla **rete Univet** o alla **VPN Univet**. Se non lo sei, collegati adesso e solo dopo vai avanti.
 
-1. Sotto le opzioni premi il pulsante **Start Recording** (con il triangolo ▶).
-2. Compare la finestra di registrazione, con un **puntino rosso che lampeggia**, la scritta **Recording session** e un **cronometro**. Da questo momento FlowCapture registra.
+1. Sotto le opzioni premi il pulsante **Avvia registrazione** (con il triangolo ▶).
+2. Compare la finestra di registrazione, con un **puntino rosso che lampeggia**, la scritta **Registrazione in corso** e un **cronometro**. Da questo momento FlowCapture registra.
 3. Vai sul programma o sul sito che vuoi documentare e lavora con calma, come faresti normalmente. Se il microfono è attivo, spiega a voce cosa stai facendo e perché.
 
 Nella finestra di registrazione trovi anche:
 
-- I contatori **events** e **screenshot**: devono aumentare mentre lavori. Se restano a zero, qualcosa non va.
+- I contatori **eventi** e **screenshot**: devono aumentare mentre lavori. Se restano a zero, qualcosa non va.
 - Il pulsante **Attivo / Muto** per spegnere e riaccendere il microfono. Quando è rosso con scritto **Muto**, la tua voce **non** viene registrata.
 - **Pausa / Riprendi** per fermarti un attimo senza chiudere la registrazione (per esempio se devi rispondere a una chiamata).
-- **Mark Step** per dire a FlowCapture "qui inizia un nuovo passaggio importante".
+- **Segna passo** per dire a FlowCapture "qui inizia un nuovo passaggio importante".
 
-Se premendo Start Recording compare un messaggio:
+Se premendo **Avvia registrazione** compare un messaggio:
 
 - **Problema con il microfono** → sistema il microfono, rifai **Prova microfono** e riprova. Non usare **Registra senza audio**: la voce va sempre registrata.
 - **Manca l'estensione del browser** → premi **Ricontrolla**; se il messaggio resta, installa l'estensione come spiegato qui sotto.
@@ -100,14 +100,14 @@ Se l'avviso resta anche dopo questi passaggi, contatta il team IT.
 ## Passo 5 – Termina la registrazione
 
 1. Quando hai finito il lavoro, torna nella finestra di FlowCapture.
-2. Premi il pulsante rosso **Stop & Process** (con il quadratino ■), in basso a destra nella finestra di registrazione.
+2. Premi il pulsante rosso **Ferma e salva** (con il quadratino ■), in basso a destra nella finestra di registrazione.
 3. Aspetta qualche secondo: la finestra di registrazione sparisce e si apre da sola la pagina della sessione appena registrata.
 
 Non chiudere FlowCapture con la **X** mentre stai registrando. Se lo fai, compare il messaggio **Registrazione in corso**: premi **Ferma e salva**, altrimenti la registrazione va persa.
 
 ## Passo 6 – Aspetta che il caricamento sia finito
 
-Dopo Stop & Process la registrazione viene copiata nella cartella condivisa. **Non chiudere FlowCapture e non spegnere il computer finché il caricamento non è finito**: con registrazioni lunghe o con il video può servire qualche minuto.
+Dopo **Ferma e salva** la registrazione viene copiata nella cartella condivisa. **Non chiudere FlowCapture e non spegnere il computer finché il caricamento non è finito**: con registrazioni lunghe o con il video può servire qualche minuto.
 
 **Dove vedi il caricamento**
 
@@ -125,6 +125,19 @@ Il caricamento è finito quando il riquadro in basso a sinistra **sparisce da so
 
 Se premi la X mentre il caricamento è ancora in corso, compare il messaggio **Salvataggio della sessione in corso** con la stessa barra. Lascia il messaggio aperto e aspetta: FlowCapture si chiude da solo appena tutto è salvato. Se invece vuoi continuare a usare FlowCapture, premi **Non chiudere, continua a lavorare**.
 
+## Cambiare il titolo di una sessione
+
+Ogni nuova sessione si chiama **Nuova sessione**. Dagli un titolo che spieghi cosa contiene, per esempio *Inserimento ordine cliente*: così la ritrovi facilmente e il team IT capisce subito di cosa si tratta.
+
+1. Apri la sessione: nella pagina **Home**, sotto **Sessioni recenti**, clicca sulla sessione; oppure cliccala nell'elenco **Sessioni** nella barra a sinistra.
+2. In alto nella pagina della sessione trovi il titolo, scritto in grande. Clicca sul titolo: compare il cursore per scrivere.
+3. Cancella il vecchio titolo e scrivi quello nuovo.
+4. Non serve premere nessun pulsante: il titolo si salva da solo appena smetti di scrivere. Accanto compare per un attimo la scritta **Salvataggio…**.
+
+Il nuovo titolo compare subito anche nell'elenco delle sessioni. Anche il file della sessione nella cartella condivisa e i file già esportati prendono il nuovo nome.
+
+> Se cancelli tutto il titolo e lasci il campo vuoto, il titolo non viene cambiato: resta quello di prima.
+
 ## Problemi comuni
 
 | Cosa vedi | Cosa fare |
@@ -133,15 +146,16 @@ Se premi la X mentre il caricamento è ancora in corso, compare il messaggio **S
 | Chiudendo compare "Cartella condivisa non raggiungibile" | Collegati alla rete o alla VPN e premi **Riprova**. Se premi **Chiudi comunque**, la sessione verrà caricata al prossimo avvio di FlowCapture. |
 | "Nessun microfono rilevato" | Collega il microfono, premi **Aggiorna lista** e rifai **Prova microfono**. |
 | Durante la registrazione: "Il microfono è in muto" | Premi il pulsante rosso **Muto** per farlo tornare su **Attivo**. |
-| Il problema continua | Apri la sessione, premi **Esporta Sessione (.flowcapture)** e invia il file al team IT. |
+| Il problema continua | Apri la sessione, premi **Esporta sessione (.flowcapture)** e invia il file al team IT. |
 
 ## Promemoria veloce
 
 - [ ] Collegato alla **rete Univet** o alla **VPN Univet**
 - [ ] Schermo giusto scelto in **Schermo da registrare**
-- [ ] **Evidenzia click negli screenshot** su **On**
-- [ ] **Screenshot su ogni evento** su **On**
-- [ ] **Registra audio microfono** su **On**, microfono scelto e **Prova microfono** con ✅
-- [ ] **Start Recording**, lavoro fatto con calma, spiegando a voce
-- [ ] **Stop & Process**
+- [ ] **Evidenzia click negli screenshot** su **Attivo**
+- [ ] **Screenshot su ogni evento** su **Attivo**
+- [ ] **Registra audio microfono** su **Attivo**, microfono scelto e **Prova microfono** con ✅
+- [ ] **Avvia registrazione**, lavoro fatto con calma, spiegando a voce
+- [ ] **Ferma e salva**
 - [ ] Aspettato che il riquadro **Salvataggio nella cartella condivisa** in basso a sinistra sparisca
+- [ ] Dato alla sessione un titolo chiaro (in alto nella pagina della sessione)

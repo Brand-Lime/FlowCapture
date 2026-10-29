@@ -3,7 +3,8 @@ import { Icon } from "@/components/ui/Icon";
 import type { IconName } from "@/lib/icons";
 
 type AppButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
-  kind?: "primary" | "ghost";
+  /** "danger" is a ghost button in red, for deleting or cancelling. */
+  kind?: "primary" | "ghost" | "danger";
   size?: "sm" | "md";
   icon?: IconName;
   children?: ReactNode;
@@ -21,7 +22,7 @@ export function AppButton({
 }: AppButtonProps) {
   const classes = [
     "btn",
-    kind === "primary" ? "btn-primary" : "btn-ghost",
+    kind === "primary" ? "btn-primary" : kind === "danger" ? "btn-ghost btn-danger" : "btn-ghost",
     size === "sm" ? "btn-sm" : "",
     className,
   ]

@@ -21,12 +21,12 @@ import {
 } from "@/components/sessions/MirrorStatusBanner";
 import { api } from "@/lib/api";
 import { formatDuration } from "@/lib/utils";
+import { stageLabel } from "@/components/ai/ProcessingPanel";
 import { recordedSeconds } from "@/hooks/useRecording";
 
 function FloatingAiProgress() {
   const { activeJob, cancelJob, clearJob } = useAiJob();
   const navigate = useNavigate();
-  const { t } = useLanguage();
 
   if (!activeJob) return null;
 
@@ -54,14 +54,14 @@ function FloatingAiProgress() {
         <div style={{ display: "flex", alignItems: "center", gap: "8px", fontWeight: 600, fontSize: "13px" }}>
           {activeJob.isDone ? (
             activeJob.error ? (
-              <span style={{ color: "#ef4444" }}>❌ {t("session.status.error") || "Error"}</span>
+              <span style={{ color: "#ef4444" }}>❌ Generazione non riuscita</span>
             ) : (
-              <span style={{ color: "#22c55e" }}>✨ {t("session.status.ready") || "Document Ready!"}</span>
+              <span style={{ color: "#22c55e" }}>✨ Documentazione pronta</span>
             )
           ) : (
             <>
               <span className="pulse" style={{ width: "8px", height: "8px" }} />
-              <span>{t("session.status.processing") || "AI processing..."}</span>
+              <span>Generazione documentazione in corso…</span>
             </>
           )}
         </div>
@@ -87,7 +87,7 @@ function FloatingAiProgress() {
       </div>
 
       <div style={{ fontSize: "11px", color: "#888" }}>
-        {t("session.stage") || "Stage"}: <span style={{ color: "#eee" }}>{activeJob.stage.replaceAll("_", " ")}</span>
+        Fase: <span style={{ color: "#eee" }}>{stageLabel(activeJob.stage)}</span>
       </div>
 
       <div style={{ display: "flex", gap: "8px", marginTop: "4px" }}>
@@ -105,7 +105,7 @@ function FloatingAiProgress() {
             cursor: "pointer",
           }}
         >
-          {t("session.back") || "View session"}
+          Vai alla sessione
         </button>
         {!activeJob.isDone && (
           <button
@@ -121,7 +121,7 @@ function FloatingAiProgress() {
               cursor: "pointer",
             }}
           >
-            {t("annotation.cancel") || "Cancel"}
+            Annulla
           </button>
         )}
       </div>
@@ -347,7 +347,7 @@ function AppShell() {
   useEffect(() => {
     const appWindow = getCurrentWindow();
     if (recording) {
-      void appWindow.setTitle(`REC ${formatDuration(elapsed)} — FlowCapture`).catch(() => {});
+      void appWindow.setTitle(`● Registrazione ${formatDuration(elapsed)} — FlowCapture`).catch(() => {});
     } else {
       void appWindow.setTitle("FlowCapture").catch(() => {});
     }

@@ -38,7 +38,7 @@ export const NETWORK_HINT = "Collegati alla rete Univet oppure alla VPN Univet."
 /** What to do when the sessions folder cannot be reached (shown in banners and dialogs). */
 export const MIRROR_UNREACHABLE_HELP =
   `${NETWORK_HINT} Le sessioni restano salvate su questo computer e vengono copiate da sole appena la cartella ` +
-  "torna raggiungibile. Se il problema continua, apri la sessione, premi \"Esporta Sessione (.flowcapture)\" e " +
+  "torna raggiungibile. Se il problema continua, apri la sessione, premi \"Esporta sessione (.flowcapture)\" e " +
   "invia il file esportato al team IT.";
 
 function formatBytes(bytes: number): string {

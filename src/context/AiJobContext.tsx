@@ -85,7 +85,7 @@ export function AiJobProvider({ children }: { children: ReactNode }) {
         stage: "pipeline_queued",
         completedStages: [],
         failedStage: null,
-        logs: [`[${new Date().toLocaleTimeString()}] Pipeline started`],
+        logs: [`[${new Date().toLocaleTimeString()}] Generazione avviata`],
         isDone: false,
         error: null,
         result: null,
@@ -101,7 +101,7 @@ export function AiJobProvider({ children }: { children: ReactNode }) {
                 stage: "completed",
                 isDone: true,
                 result,
-                logs: [...prev.logs, `[${new Date().toLocaleTimeString()}] Generation completed successfully!`],
+                logs: [...prev.logs, `[${new Date().toLocaleTimeString()}] Documentazione generata con successo!`],
               }
             : prev
         );
@@ -114,7 +114,7 @@ export function AiJobProvider({ children }: { children: ReactNode }) {
                 ...prev,
                 isDone: true,
                 error: errMsg,
-                logs: [...prev.logs, `[${new Date().toLocaleTimeString()}] ERROR: ${errMsg}`],
+                logs: [...prev.logs, `[${new Date().toLocaleTimeString()}] ERRORE: ${errMsg}`],
               }
             : prev
         );

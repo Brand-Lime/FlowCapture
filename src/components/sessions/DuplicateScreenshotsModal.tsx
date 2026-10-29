@@ -157,7 +157,7 @@ export function DuplicateScreenshotsModal({
             <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
               <span style={{ fontSize: "18px" }}>🔍</span>
               <h3 style={{ margin: 0, fontSize: "16px", fontWeight: 600 }}>
-                Rilevamento Duplicati Screenshot (Somiglianza ≥ {minSimilarity}%)
+                Screenshot duplicati (somiglianza ≥ {minSimilarity}%)
               </h3>
               <span
                 style={{
@@ -197,7 +197,7 @@ export function DuplicateScreenshotsModal({
               disabled={merging || removeIds.size === 0}
               onClick={handleMergeCurrent}
             >
-              {merging ? "Unione in corso..." : `Unisci ed Elimina Selezionati (${removeIds.size})`}
+              {merging ? "Unione in corso…" : `Unisci ed elimina selezionati (${removeIds.size})`}
             </AppButton>
           </div>
         </div>
@@ -230,7 +230,7 @@ export function DuplicateScreenshotsModal({
                   color: activeGroupIndex === idx ? "var(--mint)" : "var(--dim)",
                 }}
               >
-                Gruppo {idx + 1} ({g.screenshot_ids.length} screen · {g.similarity_pct.toFixed(1)}%)
+                Gruppo {idx + 1} ({g.screenshot_ids.length} screenshot · {g.similarity_pct.toFixed(1)}%)
               </button>
             ))}
           </div>
@@ -248,7 +248,7 @@ export function DuplicateScreenshotsModal({
           }}
         >
           <div style={{ fontSize: "13px", fontWeight: 600, color: "var(--text)" }}>
-            Confronto Gruppo {activeGroupIndex + 1}: {groupScreenshots.length} screenshot simili
+            Confronto gruppo {activeGroupIndex + 1}: {groupScreenshots.length} screenshot simili
           </div>
           <div style={{ fontSize: "12px", color: "#34d399", fontWeight: 600 }}>
             Somiglianza stimata: ~{currentGroup.similarity_pct.toFixed(1)}%
@@ -324,7 +324,7 @@ export function DuplicateScreenshotsModal({
                       checked={isKeep}
                       onChange={() => handleSetKeep(s.id)}
                     />
-                    <span>{isKeep ? "⭐ MANTIENI (Principale)" : `Opzione ${idx + 1}`}</span>
+                    <span>{isKeep ? "⭐ DA TENERE" : `Opzione ${idx + 1}`}</span>
                   </label>
 
                   {!isKeep && (
@@ -343,7 +343,7 @@ export function DuplicateScreenshotsModal({
                         checked={isRemove}
                         onChange={() => handleToggleRemove(s.id)}
                       />
-                      <span>Unisci & Elimina</span>
+                      <span>Unisci ed elimina</span>
                     </label>
                   )}
                 </div>
@@ -384,7 +384,7 @@ export function DuplicateScreenshotsModal({
                     justifyContent: "space-between",
                   }}
                 >
-                  <span>Trigger: {s.trigger || "click"}</span>
+                  <span>Evento: {s.trigger || "click"}</span>
                   <span>ID: {s.id.slice(0, 8)}...</span>
                 </div>
               </div>

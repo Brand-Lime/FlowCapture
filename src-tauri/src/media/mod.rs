@@ -314,7 +314,7 @@ pub fn encode_frames_to_mp4(
         .stdout(Stdio::null())
         .stderr(Stdio::piped())
         .status()
-        .context("failed to run ffmpeg")?;
+        .context("impossibile avviare ffmpeg")?;
 
     if !status.success() {
         return Ok(false);

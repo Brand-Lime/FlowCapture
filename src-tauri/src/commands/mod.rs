@@ -449,7 +449,7 @@ pub async fn export_session(
                 print_pdf(&app, html, pdf, opts)
             }),
             "video" => engine.export_video(&session_id),
-            other => Err(anyhow!("unsupported export format: {other}")),
+            other => Err(anyhow!("formato di esportazione non supportato: {other}")),
         }
     })
     .await
@@ -753,7 +753,7 @@ pub fn get_replay_steps(
         .db
         .get_session(&session_id)
         .map_err(|err| err.to_string())?
-        .ok_or_else(|| "session not found".to_string())?;
+        .ok_or_else(|| "sessione non trovata".to_string())?;
 
     if let Some(steps_json) = &session.steps_json {
         if let Ok(steps) = serde_json::from_str::<Vec<crate::storage::models::WorkflowStep>>(steps_json) {
@@ -811,7 +811,7 @@ pub async fn save_session_audio(
     let audio_path = audio_dir.join(format!("recording.{ext}"));
     let bytes = base64::engine::general_purpose::STANDARD
         .decode(audio_base64.trim())
-        .map_err(|err| format!("invalid audio base64: {err}"))?;
+        .map_err(|err| format!("audio non valido (base64): {err}"))?;
 
     std::fs::write(&audio_path, bytes).map_err(|err| err.to_string())?;
 
@@ -843,7 +843,7 @@ pub async fn transcribe_session_audio(
         .db
         .get_session(&session_id)
         .map_err(|err| err.to_string())?
-        .ok_or_else(|| "session not found".to_string())?;
+        .ok_or_else(|| "sessione non trovata".to_string())?;
 
     let audio_path_str = session
         .audio_path
@@ -1040,7 +1040,7 @@ pub async fn translate_documentation(
     // Sostituiscili temporaneamente con un token compatto tipo <!-- FC_SCREENSHOT_0 -->
     // in modo che l'LLM riceva e traduca SOLO IL TESTO puro, senza alterare o confondere i percorsi immagine.
     let image_regex = regex::Regex::new(r"!\[([^\]]*)\]\(([^)]+)\)")
-        .map_err(|e| format!("Regex error: {e}"))?;
+        .map_err(|e| format!("errore nell'espressione regolare: {e}"))?;
 
     let mut images: Vec<String> = Vec::new();
     let text_to_translate = image_regex
@@ -1215,7 +1215,7 @@ fn save_annotated_screenshot_blocking(
     let screenshot = screenshots
         .into_iter()
         .find(|s| s.id == screenshot_id)
-        .ok_or_else(|| "Screenshot not found".to_string())?;
+        .ok_or_else(|| "Screenshot non trovato".to_string())?;
 
     let original_path = std::path::PathBuf::from(&screenshot.path);
     // Sessions from older versions may still have the click drawn on the original.
@@ -1288,7 +1288,7 @@ fn save_annotated_screenshot_blocking(
     updated_screenshots
         .into_iter()
         .find(|s| s.id == screenshot_id)
-        .ok_or_else(|| "Screenshot not found after save".to_string())
+        .ok_or_else(|| "Screenshot non trovato dopo il salvataggio".to_string())
 }
 
 #[tauri::command]
@@ -1300,11 +1300,11 @@ pub fn update_step_screenshot(
 ) -> Result<(), String> {
     let session = state.db.get_session(&session_id)
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| "Sessione non trovata".to_string())?;
 
     let screenshots = state.db.list_screenshots(&session_id).map_err(|e| e.to_string())?;
     let target_screenshot = screenshots.iter().find(|s| s.id == screenshot_id)
-        .ok_or_else(|| "Screenshot not found".to_string())?;
+        .ok_or_else(|| "Screenshot non trovato".to_string())?;
 
     let mut steps: Vec<crate::storage::models::WorkflowStep> = session
         .steps_json
@@ -1321,7 +1321,7 @@ pub fn update_step_screenshot(
         }
         step.screenshot_ids = vec![screenshot_id.clone()];
     } else {
-        return Err(format!("Step {} not found", step_index));
+        return Err(format!("Passo {} non trovato", step_index));
     }
 
     let new_steps_json = serde_json::to_string(&steps).map_err(|e| e.to_string())?;
@@ -1354,7 +1354,7 @@ pub fn update_step_content(
 ) -> Result<(), String> {
     let session = state.db.get_session(&session_id)
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| "Sessione non trovata".to_string())?;
 
     let mut steps: Vec<crate::storage::models::WorkflowStep> = session
         .steps_json
@@ -1369,7 +1369,7 @@ pub fn update_step_content(
         step.description = description.clone();
         (old_t, old_d)
     } else {
-        return Err(format!("Step {} not found", step_index));
+        return Err(format!("Passo {} non trovato", step_index));
     };
 
     let new_steps_json = serde_json::to_string(&steps).map_err(|e| e.to_string())?;
@@ -1399,7 +1399,7 @@ pub fn update_documentation(
 ) -> Result<(), String> {
     let session = state.db.get_session(&session_id)
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| "Sessione non trovata".to_string())?;
 
     let screenshots = state.db.list_screenshots(&session_id).unwrap_or_default();
     let previous_steps: Vec<crate::storage::models::WorkflowStep> = session
@@ -1443,7 +1443,7 @@ pub fn save_step_annotations(
 ) -> Result<(), String> {
     let session = state.db.get_session(&session_id)
         .map_err(|e| e.to_string())?
-        .ok_or_else(|| "Session not found".to_string())?;
+        .ok_or_else(|| "Sessione non trovata".to_string())?;
 
     let mut steps: Vec<crate::storage::models::WorkflowStep> = session
         .steps_json
@@ -1454,7 +1454,7 @@ pub fn save_step_annotations(
     if let Some(step) = steps.iter_mut().find(|s| s.step == step_index) {
         step.annotations_json = annotations_json;
     } else {
-        return Err(format!("Step {} not found", step_index));
+        return Err(format!("Passo {} non trovato", step_index));
     }
 
     let new_steps_json = serde_json::to_string(&steps).map_err(|e| e.to_string())?;
@@ -1644,13 +1644,13 @@ fn merge_duplicate_screenshots_blocking(
 
     let session = db
         .get_session(session_id)?
-        .ok_or_else(|| anyhow!("Session not found"))?;
+        .ok_or_else(|| anyhow!("Sessione non trovata"))?;
 
     let screenshots = db.list_screenshots(session_id)?;
     let keep_screenshot = screenshots
         .iter()
         .find(|s| s.id == keep_id)
-        .ok_or_else(|| anyhow!("Keep screenshot not found"))?;
+        .ok_or_else(|| anyhow!("Screenshot da tenere non trovato"))?;
 
     let remove_paths: Vec<String> = screenshots
         .iter()

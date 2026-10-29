@@ -98,12 +98,12 @@ impl AiPipeline {
         let provider = self
             .db
             .get_enabled_provider()?
-            .context("no enabled AI provider configured")?;
+            .context("nessun provider AI attivo: configuralo nelle Impostazioni")?;
 
         let session = self
             .db
             .get_session(session_id)?
-            .context("session not found")?;
+            .context("sessione non trovata")?;
 
         let raw_events = load_session_events(&self.db, session_id)?;
         let compressed = compress_events(&raw_events);
@@ -482,7 +482,7 @@ Per documentazioni lunghe aumenta il timeout di generazione nelle Impostazioni."
         if cancel_flag.load(Ordering::Relaxed) {
             emit_log(app, session_id, "Generazione annullata dall'utente.");
             let _ = self.db.update_session_status(session_id, SessionStatus::Ready);
-            anyhow::bail!("cancelled by user");
+            anyhow::bail!("generazione annullata dall'utente");
         }
         Ok(())
     }
@@ -560,8 +560,8 @@ fn refine_prompt(
 pub fn estimate_generation_cost(db: &Database, session_id: &str) -> Result<CostEstimate> {
     let provider = db
         .get_enabled_provider()?
-        .context("no enabled AI provider configured")?;
-    let session = db.get_session(session_id)?.context("session not found")?;
+        .context("nessun provider AI attivo: configuralo nelle Impostazioni")?;
+    let session = db.get_session(session_id)?.context("sessione non trovata")?;
     let lang = DocLanguage::from_db(db);
 
     let raw_events = load_session_events(db, session_id)?;
@@ -656,7 +656,7 @@ fn finalize_markdown(markdown: &str, fallback: &str, screenshots: &[Screenshot])
 }
 
 fn parse_steps_json(response: &str) -> Result<Vec<WorkflowStep>> {
-    serde_json::from_str(&extract_json_array(response)).context("invalid steps json")
+    serde_json::from_str(&extract_json_array(response)).context("JSON dei passi non valido")
 }
 
 /// Attempts to parse steps JSON from the AI response. If parsing fails, sends a correction

@@ -29,7 +29,7 @@ const SETTLE_DELAY: Duration = Duration::from_millis(600);
 /// and printed there, and this function waits for both.
 pub fn print_html_to_pdf(app: &AppHandle, html_path: &Path, pdf_path: &Path, page_size: &str) -> Result<()> {
     let url = tauri::Url::parse(&super::path_to_file_url(&html_path.to_string_lossy())?)
-        .context("invalid document URL")?;
+        .context("indirizzo del documento non valido")?;
     let label = format!("pdf-print-{}", Uuid::new_v4().simple());
     let (loaded_tx, loaded_rx) = mpsc::channel::<()>();
 
@@ -46,7 +46,7 @@ pub fn print_html_to_pdf(app: &AppHandle, html_path: &Path, pdf_path: &Path, pag
             }
         })
         .build()
-        .context("could not create the print window")?;
+        .context("impossibile creare la finestra di stampa")?;
 
     let result = print_loaded_window(&window, &loaded_rx, pdf_path, page_size);
     let _ = window.destroy();
@@ -61,7 +61,7 @@ fn print_loaded_window(
 ) -> Result<()> {
     loaded_rx
         .recv_timeout(LOAD_TIMEOUT)
-        .map_err(|_| anyhow!("timed out loading the document to print"))?;
+        .map_err(|_| anyhow!("tempo scaduto durante il caricamento del documento da stampare"))?;
     std::thread::sleep(SETTLE_DELAY);
 
     let _ = std::fs::remove_file(pdf_path);
@@ -92,8 +92,8 @@ fn print_loaded_window(
 
                     let handler = PrintToPdfCompletedHandler::create(Box::new(move |status, succeeded| {
                         let outcome = match status {
-                            Err(err) => Err(anyhow!("WebView2 PrintToPdf failed: {err}")),
-                            Ok(()) if !succeeded => Err(anyhow!("WebView2 could not write the PDF")),
+                            Err(err) => Err(anyhow!("stampa PDF di WebView2 non riuscita: {err}")),
+                            Ok(()) if !succeeded => Err(anyhow!("WebView2 non è riuscito a scrivere il PDF")),
                             Ok(()) => Ok(()),
                         };
                         let _ = done_tx.send(outcome);
@@ -103,17 +103,17 @@ fn print_loaded_window(
                 }
             })();
             if let Err(err) = started {
-                let _ = failed_tx.send(Err(anyhow!("WebView2 printing is not available: {err}")));
+                let _ = failed_tx.send(Err(anyhow!("la stampa con WebView2 non è disponibile: {err}")));
             }
         })
-        .context("could not reach the print window")?;
+        .context("impossibile raggiungere la finestra di stampa")?;
 
     done_rx
         .recv_timeout(PRINT_TIMEOUT)
-        .map_err(|_| anyhow!("timed out while printing the PDF"))??;
+        .map_err(|_| anyhow!("tempo scaduto durante la stampa del PDF"))??;
 
     if !super::is_valid_pdf(pdf_path) {
-        anyhow::bail!("WebView2 did not produce a valid PDF");
+        anyhow::bail!("WebView2 non ha prodotto un PDF valido");
     }
     Ok(())
 }

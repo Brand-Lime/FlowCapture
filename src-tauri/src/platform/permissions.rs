@@ -226,7 +226,7 @@ mod macos {
             monitors
                 .into_iter()
                 .next()
-                .ok_or_else(|| xcap::XCapError::new("no monitor found"))
+                .ok_or_else(|| xcap::XCapError::new("nessuno schermo trovato"))
                 .and_then(|monitor| monitor.capture_image())
         });
     }

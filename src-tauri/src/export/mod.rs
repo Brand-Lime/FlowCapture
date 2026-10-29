@@ -43,7 +43,7 @@ impl ExportEngine {
             // Images are copied next to the file (exports/screenshots/) so the .md and its
             // "screenshots" folder can be moved together.
             let normalized = crate::ai::documentation::normalize_screenshot_references(&markdown, &screenshots);
-            let images_dir = export_path.parent().map(|p| p.join("screenshots")).context("invalid export path")?;
+            let images_dir = export_path.parent().map(|p| p.join("screenshots")).context("percorso di esportazione non valido")?;
             copy_referenced_screenshots(&normalized, &screenshots, &images_dir)?;
             normalized
         } else {
@@ -97,7 +97,7 @@ impl ExportEngine {
         if printed.is_err() {
             let _ = std::fs::remove_file(&pdf_path);
         }
-        printed.context("PDF export failed")?;
+        printed.context("esportazione PDF non riuscita")?;
         self.persist_export(session_id, "pdf", pdf_path)
     }
 
@@ -119,9 +119,9 @@ impl ExportEngine {
         )? {
             Some(path) => path,
             None if resolve_ffmpeg().is_none() => {
-                anyhow::bail!("Video encoding is unavailable. Rebuild the app to bundle ffmpeg.")
+                anyhow::bail!("La creazione del video non è disponibile: manca ffmpeg in questa installazione.")
             }
-            None => anyhow::bail!("No recorded video found for this session"),
+            None => anyhow::bail!("Nessun video registrato per questa sessione"),
             },
         };
         let path = self.export_path(session_id, &session, "mp4");
@@ -146,7 +146,7 @@ impl ExportEngine {
     fn require_session(&self, session_id: &str) -> Result<Session> {
         self.db
             .get_session(session_id)?
-            .context("session not found")
+            .context("sessione non trovata")
     }
 
     fn load_steps(&self, session_id: &str) -> Result<Vec<WorkflowStep>> {
@@ -242,7 +242,7 @@ pub fn rename_session_exports(db: &Database, session_id: &str, new_title: &str) 
             counter += 1;
         }
         std::fs::rename(&path, &target)
-            .with_context(|| format!("renaming {} to {}", path.display(), target.display()))?;
+            .with_context(|| format!("rinomina di {} in {}", path.display(), target.display()))?;
         db.update_export_path(&record.id, &target.to_string_lossy())?;
         renamed += 1;
     }
@@ -313,7 +313,7 @@ fn copy_referenced_screenshots(markdown: &str, screenshots: &[Screenshot], image
         let source = if annotated.is_file() { annotated } else { original.to_path_buf() };
         if source.is_file() {
             std::fs::copy(&source, images_dir.join(name))
-                .with_context(|| format!("copying {}", source.display()))?;
+                .with_context(|| format!("copia di {}", source.display()))?;
         }
     }
     Ok(())
@@ -385,10 +385,10 @@ pub(crate) fn try_print_pdf(html_path: &Path, pdf_path: &Path) -> Result<()> {
     }
     if candidates.is_empty() {
         anyhow::bail!(
-            "Could not render PDF: no Chromium-based browser found. Install Microsoft Edge, Google Chrome, Chromium, or wkhtmltopdf."
+            "Impossibile creare il PDF: nessun browser compatibile trovato. Installa Microsoft Edge, Google Chrome, Chromium o wkhtmltopdf."
         )
     }
-    anyhow::bail!("Could not render PDF. Attempts: {}", failures.join("; "))
+    anyhow::bail!("Impossibile creare il PDF. Tentativi: {}", failures.join("; "))
 }
 
 pub(crate) fn is_valid_pdf(path: &Path) -> bool {
@@ -427,7 +427,7 @@ fn run_command_with_timeout(
         if start.elapsed() >= timeout {
             let _ = child.kill();
             let _ = child.wait();
-            anyhow::bail!("command timed out after {} seconds", timeout.as_secs());
+            anyhow::bail!("comando interrotto dopo {} secondi senza risposta", timeout.as_secs());
         }
 
         thread::sleep(Duration::from_millis(50));

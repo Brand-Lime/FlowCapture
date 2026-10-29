@@ -593,6 +593,7 @@ fn should_skip_event(event: &SessionEvent) -> bool {
 fn is_generic_session_title(title: &str) -> bool {
     let normalized = title.trim().to_lowercase();
     normalized.is_empty()
+        || normalized == "nuova sessione"
         || normalized == "new workflow session"
         || normalized.starts_with("new workflow")
 }

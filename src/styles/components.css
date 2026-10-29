@@ -496,3 +496,68 @@
 .ext-list .ext-state.disabled { color: #fbbf24; }
 .ext-list .ext-state.missing { color: var(--rose); }
 .ext-list .ext-state.unused { color: var(--dim); }
+
+/* ---------- Progress logs (generation, translation, transcription) ---------- */
+.log-panel {
+  margin: 12px 0 16px; background: #0d1117; border: 1px solid rgba(108,198,255,.4);
+  border-radius: 10px; padding: 14px 16px; box-shadow: 0 6px 20px rgba(0,0,0,.35);
+}
+.log-panel.success { border-color: rgba(52,211,153,.45); }
+.log-panel.error { border-color: rgba(239,68,68,.45); }
+.log-panel-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+.log-panel-status { display: flex; align-items: center; gap: 8px; font-weight: 600; font-size: 13px; color: var(--ice); }
+.log-panel.success .log-panel-status { color: #34d399; }
+.log-panel.error .log-panel-status { color: #f87171; }
+.log-panel-spinner {
+  display: inline-block; width: 12px; height: 12px; border: 2px solid currentColor;
+  border-top-color: transparent; border-radius: 50%; animation: spin .8s linear infinite;
+}
+.log-box {
+  font-family: var(--mono); font-size: 12px; line-height: 1.5; color: #e6edf3; text-align: left;
+  max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px;
+  background: rgba(0,0,0,.4); border: 1px solid rgba(255,255,255,.08); border-radius: 8px; padding: 10px 12px;
+}
+.log-box-title { font-weight: 600; color: #c9d1d9; margin-bottom: 4px; padding-bottom: 4px; border-bottom: 1px solid #21262d; }
+.log-line.error { color: #f87171; }
+.log-line.success { color: #34d399; }
+.proc-log { margin-top: 20px; width: 100%; background: #0d1117; }
+.log-panel-close { color: #8b949e; font-size: 11px; font-weight: 500; }
+
+/* ---------- Session tabs: inner boxes and headers ---------- */
+.panel-head { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 12px; }
+.panel-head-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.sub-box { padding: 16px; background: rgba(255,255,255,.03); border-radius: 8px; border: 1px solid var(--hair); }
+.sub-box-title { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 8px; }
+.chip { font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 10px; }
+.chip.ok { color: #34d399; background: rgba(52,211,153,.15); }
+.chip.info { color: var(--ice); background: rgba(108,198,255,.15); }
+.seg.seg-sm button { padding: 4px 10px; font-size: 12px; }
+
+/* ---------- Setting rows (Settings page and recording options on Home) ---------- */
+.setting-label { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.setting-emoji { font-size: 16px; flex-shrink: 0; }
+
+/* ---------- Home: recording options ---------- */
+.rec-options {
+  margin: 18px 0; padding: 0 16px; background: rgba(255,255,255,.03);
+  border: 1px solid var(--hair); border-radius: 8px;
+}
+.rec-options > * { padding: 12px 0; }
+.rec-options > * + * { border-top: 1px solid var(--hair); }
+.rec-options .setting-row.rec-option { max-width: none; margin: 0; flex-wrap: wrap; }
+.rec-option-group > .setting-row.rec-option { padding: 0; }
+.rec-options .setting-row label { font-size: 13.5px; font-weight: 500; color: var(--text); margin: 0; }
+.rec-suboptions { margin-top: 12px; padding-left: 26px; display: flex; flex-direction: column; gap: 10px; }
+.rec-suboptions .setting-row.rec-option-sub label { font-size: 12.5px; font-weight: 400; color: var(--text-2); }
+.rec-suboptions .settings-inline-field label { min-width: 120px; font-size: 12.5px; color: var(--text-2); }
+.rec-select { flex: 0 1 auto; width: auto; min-width: 220px; max-width: 320px; }
+.rec-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.kbd-hint { font-family: var(--mono); font-size: 12.5px; color: var(--dim); }
+
+/* ---------- Home: session list ---------- */
+.sess-delete {
+  display: flex; align-items: center; justify-content: center; padding: 6px; border: none; border-radius: 4px;
+  background: transparent; color: var(--rose); opacity: .7; cursor: pointer; transition: opacity .2s;
+}
+.sess-delete:hover { opacity: 1; }
+.shot-edit-btn { height: 28px; padding: 0 8px; font-size: 12px; gap: 4px; }

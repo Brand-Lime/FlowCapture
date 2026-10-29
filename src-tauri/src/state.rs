@@ -119,7 +119,7 @@ impl AppState {
     pub fn start_recording(&self, title: Option<String>, monitor_id: Option<String>) -> Result<Session> {
         let mut active = self.active_session.lock();
         if active.is_some() {
-            anyhow::bail!("a recording is already in progress");
+            anyhow::bail!("è già in corso una registrazione");
         }
 
         preflight_recording_start()?;
@@ -243,7 +243,7 @@ impl AppState {
             let mut guard = self.active_session.lock();
             guard
                 .take()
-                .ok_or_else(|| anyhow::anyhow!("no active recording"))?
+                .ok_or_else(|| anyhow::anyhow!("nessuna registrazione in corso"))?
         };
 
         if let Some(since) = active.paused_since.take() {
@@ -308,13 +308,13 @@ impl AppState {
 
         self.db
             .get_session(&session_id)?
-            .ok_or_else(|| anyhow::anyhow!("session not found after stop"))
+            .ok_or_else(|| anyhow::anyhow!("sessione non trovata dopo la fine della registrazione"))
     }
 
     pub fn capture_manual_screenshot(&self) -> Result<()> {
         let (session_id, monitor_id) = {
             let active = self.active_session.lock();
-            let recording = active.as_ref().ok_or_else(|| anyhow::anyhow!("no active recording"))?;
+            let recording = active.as_ref().ok_or_else(|| anyhow::anyhow!("nessuna registrazione in corso"))?;
             (recording.session.id.clone(), recording.monitor_id.clone())
         };
 
@@ -334,7 +334,7 @@ impl AppState {
 
     pub fn pause_recording(&self) -> Result<()> {
         let mut guard = self.active_session.lock();
-        let active = guard.as_mut().ok_or_else(|| anyhow::anyhow!("no active recording"))?;
+        let active = guard.as_mut().ok_or_else(|| anyhow::anyhow!("nessuna registrazione in corso"))?;
         if active.paused_since.is_none() {
             active.paused_since = Some(epoch_ms());
         }
@@ -350,7 +350,7 @@ impl AppState {
 
     pub fn resume_recording(&self) -> Result<()> {
         let mut guard = self.active_session.lock();
-        let active = guard.as_mut().ok_or_else(|| anyhow::anyhow!("no active recording"))?;
+        let active = guard.as_mut().ok_or_else(|| anyhow::anyhow!("nessuna registrazione in corso"))?;
         if let Some(since) = active.paused_since.take() {
             active.pauses.push((since, epoch_ms()));
         }
@@ -366,7 +366,7 @@ impl AppState {
 
     pub fn switch_recording_monitor(&self, monitor_id: String) -> Result<()> {
         let mut guard = self.active_session.lock();
-        let active = guard.as_mut().ok_or_else(|| anyhow::anyhow!("no active recording"))?;
+        let active = guard.as_mut().ok_or_else(|| anyhow::anyhow!("nessuna registrazione in corso"))?;
         active.monitor_id = Some(monitor_id.clone());
         self.screenshot_engine.lock().set_monitor_id(Some(monitor_id.clone()));
         if let Some(platform) = self.platform.try_lock() {
@@ -417,7 +417,7 @@ fn stop_platform_services(state: &AppState) -> Result<Option<String>> {
         thread::sleep(Duration::from_millis(5));
     }
 
-    anyhow::bail!("timed out while stopping recording services")
+    anyhow::bail!("tempo scaduto durante l'arresto della registrazione")
 }
 
 #[allow(clippy::too_many_arguments)]

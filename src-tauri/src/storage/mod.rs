@@ -29,7 +29,7 @@ impl Database {
     pub fn new(app_data_dir: PathBuf) -> Result<Self> {
         std::fs::create_dir_all(&app_data_dir)?;
         let db_path = app_data_dir.join("flowcapture.db");
-        let conn = Connection::open(&db_path).context("failed to open sqlite database")?;
+        let conn = Connection::open(&db_path).context("impossibile aprire il database")?;
         conn.execute("PRAGMA foreign_keys = ON", [])?;
         let db = Self {
             conn: Mutex::new(conn),
@@ -164,7 +164,7 @@ impl Database {
     pub fn create_session(&self, title: Option<String>) -> Result<Session> {
         let id = Uuid::new_v4().to_string();
         let now = Utc::now().to_rfc3339();
-        let title = title.unwrap_or_else(|| "Untitled Session".to_string());
+        let title = title.unwrap_or_else(|| "Nuova sessione".to_string());
         let session_dir = self.session_dir(&id);
         std::fs::create_dir_all(session_dir.join("screenshots"))?;
         std::fs::create_dir_all(session_dir.join("exports"))?;
@@ -175,7 +175,7 @@ impl Database {
         )?;
 
         self.get_session(&id)?
-            .ok_or_else(|| anyhow::anyhow!("failed to load created session"))
+            .ok_or_else(|| anyhow::anyhow!("impossibile caricare la sessione appena creata"))
     }
 
     pub fn update_session_status(&self, session_id: &str, status: SessionStatus) -> Result<()> {

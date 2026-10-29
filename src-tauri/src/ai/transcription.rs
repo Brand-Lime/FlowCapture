@@ -46,10 +46,10 @@ pub async fn transcribe_audio_with_segments(
     language: Option<&str>,
 ) -> Result<TranscriptionResult> {
     let bytes = std::fs::read(audio_path)
-        .with_context(|| format!("failed to read audio file at {}", audio_path.display()))?;
+        .with_context(|| format!("impossibile leggere il file audio {}", audio_path.display()))?;
 
     if bytes.is_empty() {
-        anyhow::bail!("audio file is empty");
+        anyhow::bail!("il file audio è vuoto");
     }
 
     match provider.provider_type.as_str() {
@@ -69,7 +69,7 @@ pub async fn transcribe_audio_with_segments(
             }
         }
         other => {
-            anyhow::bail!("Audio transcription is supported with OpenAI (Whisper), Gemini, and Local/Self-hosted (Whisper/Ollama). Configured provider: {other}")
+            anyhow::bail!("La trascrizione audio funziona con OpenAI (Whisper), Gemini e server locali (Whisper/Ollama). Provider configurato: {other}")
         }
     }
 }
@@ -273,7 +273,7 @@ async fn transcribe_gemini(
     let api_key = provider
         .api_key
         .clone()
-        .context("Gemini API key not configured")?;
+        .context("chiave API di Gemini non configurata")?;
     let base_url = provider
         .base_url
         .clone()
@@ -337,7 +337,7 @@ async fn transcribe_gemini(
     response["candidates"][0]["content"]["parts"][0]["text"]
         .as_str()
         .map(str::to_string)
-        .context("missing Gemini transcription response content")
+        .context("risposta di trascrizione di Gemini senza contenuto")
 }
 
 async fn transcribe_ollama(

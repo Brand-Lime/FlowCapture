@@ -77,7 +77,7 @@ export function ScreenshotPickerModal({
   });
 
   const heading =
-    title ?? (stepIndex != null ? `Scegli Screenshot per il Passo ${stepIndex}` : "Scegli Screenshot");
+    title ?? (stepIndex != null ? `Scegli lo screenshot per il passo ${stepIndex}` : "Scegli uno screenshot");
 
   return (
     <div
@@ -100,7 +100,7 @@ export function ScreenshotPickerModal({
               Annulla
             </AppButton>
             <AppButton size="sm" kind="primary" disabled={!selectedId || saving} onClick={handleConfirm}>
-              {saving ? "Aggiornamento..." : confirmLabel ?? (stepIndex != null ? "Applica al Passo" : "Usa questa immagine")}
+              {saving ? "Aggiornamento…" : confirmLabel ?? (stepIndex != null ? "Applica al passo" : "Usa questa immagine")}
             </AppButton>
           </div>
         </div>
@@ -164,7 +164,7 @@ export function ScreenshotPickerModal({
                 }}
                 title="Doppio clic o tasto destro per ingrandire a schermo intero"
               >
-                <img src={convertFileSrc(previewScreenshot.path)} alt="Preview" />
+                <img src={convertFileSrc(previewScreenshot.path)} alt="Anteprima" />
               </div>
             ) : (
               <div className="picker-preview-empty">Nessuna immagine selezionata</div>
@@ -177,7 +177,7 @@ export function ScreenshotPickerModal({
         <ImageLightbox
           src={convertFileSrc(previewScreenshot.path)}
           alt={`Screenshot #${previewIndex + 1}`}
-          caption={`Screenshot #${previewIndex + 1} · ${previewScreenshot.trigger ?? "capture"}`}
+          caption={`Screenshot #${previewIndex + 1} · ${previewScreenshot.trigger ?? ""}`}
           onClose={() => setFullscreen(false)}
           onPrev={previewIndex > 0 ? () => move(-1) : undefined}
           onNext={previewIndex < screenshots.length - 1 ? () => move(1) : undefined}

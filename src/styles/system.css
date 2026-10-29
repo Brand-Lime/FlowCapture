@@ -113,6 +113,9 @@ button { font-family: inherit; cursor: pointer; }
   border-color: var(--hair-2);
 }
 .btn-ghost:hover { background: rgba(255,255,255,.06); border-color: var(--hair-strong); transform: translateY(-1px); }
+.btn-danger { color: var(--rose); border-color: rgba(255,138,138,.32); }
+.btn-danger:hover { background: rgba(255,100,100,.08); border-color: rgba(255,138,138,.55); }
+.btn:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 .btn-sm { height: 36px; padding: 0 14px; font-size: 13.5px; }
 
 /* --- Pills / badges --- */

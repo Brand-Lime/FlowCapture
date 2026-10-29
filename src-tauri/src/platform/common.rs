@@ -78,7 +78,7 @@ pub struct SharedRecorder {
 impl ScreenRecorder for SharedRecorder {
     fn start_with_monitor(&mut self, output_dir: PathBuf, monitor_id: Option<String>) -> Result<PathBuf> {
         if self.recording.load(Ordering::SeqCst) {
-            anyhow::bail!("recording already in progress");
+            anyhow::bail!("è già in corso una registrazione");
         }
 
         std::fs::create_dir_all(&output_dir)?;
@@ -537,7 +537,7 @@ pub fn find_monitor(target_id: Option<&str>) -> Result<Monitor> {
     if let Some(m) = monitors.iter().find(|m| m.is_primary().unwrap_or(false)) {
         return Ok(m.clone());
     }
-    monitors.into_iter().next().context("no monitor found")
+    monitors.into_iter().next().context("nessuno schermo trovato")
 }
 
 /// Linux monitor lookup for the HD recorder. `list_monitors` exposes Linux monitors by index,
@@ -550,7 +550,7 @@ pub fn find_monitor(target_id: Option<&str>) -> Result<xcap::Monitor> {
         .filter(|&idx| idx < monitors.len())
         .unwrap_or(0);
     if monitors.is_empty() {
-        anyhow::bail!("no monitor found");
+        anyhow::bail!("nessuno schermo trovato");
     }
     Ok(monitors.swap_remove(index))
 }
@@ -574,7 +574,7 @@ impl ScreenshotCapturer for SharedScreenshotCapturer {
             let image = monitor.capture_image()?;
             image
                 .save(&output_path)
-                .map_err(|err| anyhow::anyhow!("failed to save screenshot: {err}"))?;
+                .map_err(|err| anyhow::anyhow!("impossibile salvare lo screenshot: {err}"))?;
             Ok(output_path)
         }
     }

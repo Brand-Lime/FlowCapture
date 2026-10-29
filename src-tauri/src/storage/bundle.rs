@@ -121,7 +121,7 @@ pub(crate) fn write_bundle_archive(
     written_bytes: Option<&AtomicU64>,
 ) -> Result<()> {
     let file = File::create(target_path)
-        .with_context(|| format!("Failed to create export bundle at {}", target_path.display()))?;
+        .with_context(|| format!("impossibile creare il file di esportazione in {}", target_path.display()))?;
     let mut sink = ZipSink {
         zip: ZipWriter::new(CountingFile { file, counter: written_bytes }),
         written: HashSet::new(),
@@ -160,12 +160,12 @@ pub fn export_session_bundle(
     session_id: &str,
     target_path: &Path,
 ) -> Result<PathBuf> {
-    db.get_session(session_id)?.context("Session not found for export")?;
+    db.get_session(session_id)?.context("sessione da esportare non trovata")?;
     if let Some(parent) = target_path.parent() {
         std::fs::create_dir_all(parent)?;
     }
     let file = File::create(target_path)
-        .with_context(|| format!("Failed to create export bundle at {}", target_path.display()))?;
+        .with_context(|| format!("impossibile creare il file di esportazione in {}", target_path.display()))?;
     let mut sink = ZipSink { zip: ZipWriter::new(file), written: HashSet::new() };
 
     let manifest = write_session_bundle(db, session_id, &mut sink)?;
@@ -183,7 +183,7 @@ pub(crate) fn write_session_bundle(
 ) -> Result<SessionBundleManifest> {
     let session = db
         .get_session(session_id)?
-        .context("Session not found for export")?;
+        .context("sessione da esportare non trovata")?;
     let events = db.list_events(session_id)?;
     let screenshots = db.list_screenshots(session_id)?;
     let ai_jobs = db.list_ai_jobs(session_id)?;
@@ -364,8 +364,8 @@ impl BundleSource {
             return Ok(Self::Dir(folder));
         }
         let file = File::open(path)
-            .with_context(|| format!("Failed to open import bundle at {}", path.display()))?;
-        let zip = ZipArchive::new(file).with_context(|| "Failed to read zip archive")?;
+            .with_context(|| format!("impossibile aprire il file da importare {}", path.display()))?;
+        let zip = ZipArchive::new(file).with_context(|| "impossibile leggere l'archivio")?;
         Ok(Self::Zip(zip))
     }
 
@@ -374,7 +374,7 @@ impl BundleSource {
         match self {
             Self::Zip(zip) => {
                 zip.by_name("manifest.json")
-                    .context("Missing manifest.json in archive: invalid or unsupported FlowCapture bundle")?
+                    .context("manifest.json mancante: il file non è una sessione FlowCapture valida")?
                     .read_to_string(&mut manifest)?;
             }
             Self::Dir(root) => {
@@ -434,7 +434,7 @@ impl BundleSource {
                             .collect::<Vec<_>>()
                             .join("/");
                         let mut input = File::open(&path)
-                            .with_context(|| format!("Cannot read {}", path.display()))?;
+                            .with_context(|| format!("impossibile leggere {}", path.display()))?;
                         copy_to(&entry_name, &mut input)?;
                     }
                 }
@@ -460,7 +460,7 @@ pub fn import_session_bundle(
     let manifest_str = source.read_manifest()?;
 
     let manifest: SessionBundleManifest = serde_json::from_str(&manifest_str)
-        .context("Failed to parse bundle manifest.json")?;
+        .context("manifest.json della sessione non valido")?;
 
     // 2. Check collision with existing sessions. The id becomes a directory name, so anything
     //    that is not a plain UUID (e.g. "../../x") is replaced with a fresh one.
@@ -644,7 +644,7 @@ pub fn import_session_bundle(
 
     // 10. Return imported session
     db.get_session(&target_session_id)?
-        .context("Failed to reload newly imported session")
+        .context("impossibile ricaricare la sessione appena importata")
 }
 
 /// Streams a file into the archive. Already-compressed media (images, video, audio) is stored
@@ -675,7 +675,7 @@ fn add_file<W: Write + Seek>(
         .compression_method(method)
         .large_file(source.metadata().map(|m| m.len() >= u32::MAX as u64).unwrap_or(false));
     let mut input = File::open(source)
-        .with_context(|| format!("Cannot read {} for the bundle", source.display()))?;
+        .with_context(|| format!("impossibile leggere {} per l'esportazione", source.display()))?;
     zip.start_file(entry_name, options)?;
     std::io::copy(&mut input, zip)?;
     Ok(())

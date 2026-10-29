@@ -366,7 +366,7 @@ export function MarkdownEditor({
               type="button"
               className="btn btn-ghost btn-sm mde-btn mde-heading"
               onClick={() => insertLinePrefix(prefix)}
-              title={t(`md.h${idx + 1}_title`, `Heading ${idx + 1}`)}
+              title={t(`md.h${idx + 1}_title`, `Titolo ${idx + 1}`)}
             >
               H{idx + 1}
             </button>
@@ -425,14 +425,14 @@ export function MarkdownEditor({
           >
             ```
           </button>
-          <button type="button" className="btn btn-ghost btn-sm mde-btn" onClick={insertTable} title="Inserisci tabella Markdown">
+          <button type="button" className="btn btn-ghost btn-sm mde-btn" onClick={insertTable} title="Inserisci una tabella">
             ⊞ Tabella
           </button>
           <button
             type="button"
             className="btn btn-ghost btn-sm mde-btn"
-            onClick={() => insertFormatting("[", "](https://example.com)", "Testo Link")}
-            title="Inserisci Link"
+            onClick={() => insertFormatting("[", "](https://example.com)", "testo del link")}
+            title="Inserisci un link"
           >
             🔗 Link
           </button>
@@ -444,9 +444,9 @@ export function MarkdownEditor({
               type="button"
               className="btn btn-ghost btn-sm mde-btn"
               onClick={() => setShowScreenshotPicker(!showScreenshotPicker)}
-              title="Inserisci immagine screenshot nella posizione del cursore"
+              title="Inserisci uno screenshot nella posizione del cursore"
             >
-              🖼️ Inserisci Screenshot {screenshots.length > 0 ? `(${screenshots.length})` : ""} ▾
+              🖼️ Inserisci screenshot {screenshots.length > 0 ? `(${screenshots.length})` : ""} ▾
             </button>
 
             {showScreenshotPicker && (
@@ -463,7 +463,7 @@ export function MarkdownEditor({
                     >
                       <span className="mde-dropdown-num">#{idx + 1}</span>
                       <div className="mde-dropdown-text">
-                        <div>{shot.trigger || "Screenshot"}</div>
+                        <div>{shot.trigger || "screenshot"}</div>
                         <div className="mde-dropdown-file">{shot.path.split(/[/\\]/).pop()}</div>
                       </div>
                     </button>
@@ -479,15 +479,15 @@ export function MarkdownEditor({
                 type="button"
                 className="btn btn-ghost btn-sm mde-btn mde-accent"
                 onClick={insertStepTemplate}
-                title="Aggiunge un nuovo step dopo quello in cui si trova il cursore e rinumera automaticamente gli step successivi"
+                title="Aggiunge un nuovo passo dopo quello in cui si trova il cursore e rinumera i passi successivi"
               >
-                + Aggiungi {t("md.step", "Step")}
+                + Aggiungi passo
               </button>
               <button
                 type="button"
                 className="btn btn-ghost btn-sm mde-btn"
                 onClick={handleRenumberSteps}
-                title="Rinumera tutti gli step in ordine (1, 2, 3…)"
+                title="Rinumera tutti i passi in ordine (1, 2, 3…)"
               >
                 🔢 Rinumera
               </button>
@@ -497,12 +497,12 @@ export function MarkdownEditor({
 
         <div className="mde-group">
           {previewVisible && (
-            <div className="mde-zoom" title="Regola la dimensione del testo dell'anteprima (Zoom In / Out)">
+            <div className="mde-zoom" title="Regola la dimensione del testo dell'anteprima">
               <button
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => setZoom((z) => Math.max(70, z - 10))}
-                title="Riduci dimensione testo (Zoom Out)"
+                title="Riduci la dimensione del testo"
               >
                 A−
               </button>
@@ -510,7 +510,7 @@ export function MarkdownEditor({
                 type="button"
                 className={`btn btn-ghost btn-sm mde-zoom-value${zoom === 100 ? "" : " changed"}`}
                 onClick={() => setZoom(100)}
-                title="Reimposta dimensione predefinita (100%)"
+                title="Torna alla dimensione predefinita (100%)"
               >
                 {zoom}%
               </button>
@@ -518,7 +518,7 @@ export function MarkdownEditor({
                 type="button"
                 className="btn btn-ghost btn-sm"
                 onClick={() => setZoom((z) => Math.min(160, z + 10))}
-                title="Aumenta dimensione testo (Zoom In)"
+                title="Aumenta la dimensione del testo"
               >
                 A+
               </button>
@@ -531,10 +531,10 @@ export function MarkdownEditor({
               className={`mde-toggle${editablePreview ? " on" : ""}`}
               onClick={() => setEditablePreview(!editablePreview)}
               aria-pressed={editablePreview}
-              title="Quando attiva, puoi cliccare e modificare il testo direttamente sull'anteprima formattata"
+              title="Quando è attiva puoi cliccare sull'anteprima e modificare il testo direttamente"
             >
               <span>✏️</span>
-              <span>{compact ? "Anteprima Modificabile" : "Anteprima Diretta Modificabile"}</span>
+              <span>{compact ? "Anteprima modificabile" : "Modifica nell'anteprima"}</span>
             </button>
           )}
 
@@ -543,32 +543,32 @@ export function MarkdownEditor({
               type="button"
               className={viewMode === "split" ? "on" : ""}
               onClick={() => setViewMode("split")}
-              title="Vista affiancata: Editor e Anteprima Live sincronizzati"
+              title="Editor e anteprima affiancati e sincronizzati"
             >
-              Split View
+              Affiancati
             </button>
             <button
               type="button"
               className={viewMode === "edit" ? "on" : ""}
               onClick={() => setViewMode("edit")}
-              title="Mostra solo l'editor sorgente Markdown"
+              title="Mostra solo il testo Markdown"
             >
-              Solo Editor
+              Solo testo
             </button>
             <button
               type="button"
               className={viewMode === "preview" ? "on" : ""}
               onClick={() => setViewMode("preview")}
-              title="Mostra solo l'anteprima formattata con supporto alla modifica diretta"
+              title="Mostra solo l'anteprima formattata"
             >
-              Solo Anteprima
+              Solo anteprima
             </button>
           </div>
 
           {saving && (
             <span className="mde-saving">
               <span className="fc-spinner" />
-              Salvataggio...
+              Salvataggio…
             </span>
           )}
 
@@ -581,7 +581,7 @@ export function MarkdownEditor({
               )}
               {onSave && (
                 <button type="button" className="mde-save" onClick={onSave} disabled={saving}>
-                  {saving ? "Salvataggio..." : "💾 Salva"}
+                  {saving ? "Salvataggio…" : "Salva"}
                 </button>
               )}
             </div>
@@ -616,7 +616,7 @@ export function MarkdownEditor({
               onScroll={handleEditorScroll}
               onKeyDown={handleEditorKeyDown}
               disabled={disabled}
-              placeholder="Scrivi qui il markdown della documentazione o usa la toolbar sopra..."
+              placeholder="Scrivi qui il testo della guida in Markdown, oppure usa la barra degli strumenti qui sopra…"
               style={{ minHeight }}
             />
           </div>

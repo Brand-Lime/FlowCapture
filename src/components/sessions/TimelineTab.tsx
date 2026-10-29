@@ -83,9 +83,9 @@ export function TimelineTab({ events, screenshots, onOpenScreenshot }: TimelineT
         }}
       >
         <div>
-          <h3 style={{ margin: 0 }}>Compressed Timeline ({events.length})</h3>
+          <h3 style={{ margin: 0 }}>Cronologia degli eventi ({events.length})</h3>
           <div className="pd">
-            {events.length} eventi registrati · {screenshots.length} screenshot associati nel workflow.
+            {events.length} eventi registrati · {screenshots.length} screenshot associati.
           </div>
         </div>
         {screenshots.length > 0 && (
@@ -103,7 +103,7 @@ export function TimelineTab({ events, screenshots, onOpenScreenshot }: TimelineT
 
       <div className="tl-list">
         {events.length === 0 ? (
-          <div className="pd">No compressed events yet.</div>
+          <div className="pd">Nessun evento registrato.</div>
         ) : (
           events.map((event, index) => {
             const eventShots = eventScreenshotsMap.get(index) ?? [];
@@ -121,7 +121,7 @@ export function TimelineTab({ events, screenshots, onOpenScreenshot }: TimelineT
                   <div className="tinfo">
                     <div className="tt">{event.event_type.replaceAll("_", " ")}</div>
                     <div className="td">
-                      {event.app_name ?? "Unknown app"} · {JSON.stringify(event.payload)}
+                      {event.app_name ?? "App sconosciuta"} · {JSON.stringify(event.payload)}
                     </div>
                   </div>
 
@@ -135,12 +135,12 @@ export function TimelineTab({ events, screenshots, onOpenScreenshot }: TimelineT
                       >
                         <Icon name="camera" size={13} />
                         <span>
-                          {eventShots.length} {eventShots.length === 1 ? "screen" : "screen"}
+                          {eventShots.length} {eventShots.length === 1 ? "screenshot" : "screenshot"}
                         </span>
                         <Icon name={isCollapsed ? "chevronDown" : "chevronUp"} size={12} />
                       </button>
                     ) : (
-                      <span className="tl-evt-no-shots">Nessun screenshot</span>
+                      <span className="tl-evt-no-shots">Nessuno screenshot</span>
                     )}
 
                     <div className="ttime">{event.timestamp_ms}ms</div>
@@ -216,7 +216,7 @@ export function TimelineTab({ events, screenshots, onOpenScreenshot }: TimelineT
                             <span className="tl-shot-label" title={shot.trigger ?? "screenshot"}>
                               {shot.trigger?.replaceAll("_", " ") ?? "screenshot"}
                             </span>
-                            <span className="tl-shot-time" title={`Timestamp assoluto: ${shot.timestamp_ms}ms`}>
+                            <span className="tl-shot-time" title={`Istante assoluto: ${shot.timestamp_ms} ms`}>
                               {timeLabel}
                             </span>
                           </div>

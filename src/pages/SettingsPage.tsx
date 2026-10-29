@@ -11,9 +11,10 @@ import { api, type ProviderConfig, type MonitorInfo } from "@/lib/api";
 import { Icon } from "@/components/ui/Icon";
 import { providerGlyph } from "@/lib/icons";
 import { useLanguage } from "@/i18n";
+import { SettingSwitch } from "@/components/ui/SettingSwitch";
 
 export function SettingsPage() {
-  const { t, language, setLanguage } = useLanguage();
+  const { t } = useLanguage();
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
   const [redactionEnabled, setRedactionEnabled] = useState(true);
   const [recordAudio, setRecordAudio] = useState(false);
@@ -164,7 +165,7 @@ export function SettingsPage() {
     setError(null);
     try {
       await api.updateProvider(provider);
-      setMessage(`${provider.name} saved`);
+      setMessage(`${provider.name} salvato`);
       await refresh();
     } catch (err) {
       setError(String(err));
@@ -192,7 +193,7 @@ export function SettingsPage() {
       await api.setSetting("ai_custom_parameters", formatted);
       setMessage(t("settings.custom_params.saved_success", "Custom parameters saved successfully"));
     } catch (e: any) {
-      setCustomParamsError(`Errore sintassi JSON: ${e?.message ?? e}`);
+      setCustomParamsError(`Errore nel JSON: ${e?.message ?? e}`);
     }
   }
 
@@ -294,8 +295,8 @@ export function SettingsPage() {
   return (
     <div className="page settings-page">
       <div className="home-hero">
-        <h1 className="settings-title">Settings</h1>
-        <p className="lead">Configure BYOK AI providers and privacy controls.</p>
+        <h1 className="settings-title">Impostazioni</h1>
+        <p className="lead">Configura i servizi AI, la privacy, la registrazione e la cartella delle sessioni.</p>
       </div>
 
       {message ? (
@@ -319,29 +320,12 @@ export function SettingsPage() {
       ) : null}
 
       <div className="card set-card">
-        <h3>{t("settings.language.title")}</h3>
-        <div className="sub">{t("settings.language.sub")}</div>
-        <div className="field settings-narrow">
-          <select
-            className="settings-select"
-            value={language}
-            onChange={(e) => setLanguage(e.target.value as any)}
-          >
-            <option value="en">English (US)</option>
-            <option value="it">Italiano (IT)</option>
-          </select>
-        </div>
-      </div>
-
-      <div className="card set-card">
         <h3>{t("settings.privacy.title")}</h3>
         <div className="sub">{t("settings.privacy.sub")}</div>
         <SettingSwitch
           narrow
           label={t("settings.redaction.label")}
           value={redactionEnabled}
-          onLabel={t("settings.enabled")}
-          offLabel={t("settings.disabled")}
           onChange={(next) => {
             setRedactionEnabled(next);
             return saveSetting("redaction_enabled", String(next));
@@ -396,8 +380,6 @@ export function SettingsPage() {
             narrow
             label="Salva le sessioni in questa cartella"
             value={mirrorWrite}
-            onLabel="Attivo"
-            offLabel="Disattivo"
             onChange={(next) => changeMirrorWrite(next)}
           />
         ) : null}
@@ -453,12 +435,13 @@ export function SettingsPage() {
         <div className="settings-actions">
           <AppButton
             kind="ghost"
+            icon="folder"
             onClick={async () => {
               try {
                 const path = await api.openLogsFolder();
-                setMessage(`Logs folder opened: ${path}`);
+                setMessage(`Cartella log aperta: ${path}`);
               } catch (e: any) {
-                setError(`Could not open logs folder: ${e?.message ?? e}`);
+                setError(`Impossibile aprire la cartella log: ${e?.message ?? e}`);
               }
             }}
           >
@@ -529,12 +512,13 @@ export function SettingsPage() {
             <div className="settings-actions">
               <AppButton
                 kind="primary"
+                icon="folder"
                 onClick={async () => {
                   try {
                     const path = await api.openBrowserExtensionFolder();
-                    setMessage(`Extension folder opened: ${path}`);
+                    setMessage(`Cartella estensione aperta: ${path}`);
                   } catch (e: any) {
-                    setError(`Could not open extension folder: ${e?.message ?? e}`);
+                    setError(`Impossibile aprire la cartella dell'estensione: ${e?.message ?? e}`);
                   }
                 }}
               >
@@ -557,8 +541,6 @@ export function SettingsPage() {
           label={t("settings.highlight.label")}
           description={t("settings.highlight.sub")}
           value={highlightClicks}
-          onLabel={t("settings.active")}
-          offLabel={t("settings.inactive")}
           onChange={(next) => {
             setHighlightClicks(next);
             return saveSetting("highlight_clicks", String(next));
@@ -572,8 +554,6 @@ export function SettingsPage() {
             "Confronta ogni screenshot con il precedente pixel per pixel e non salva quelli identici (cursore e hover esclusi).",
           )}
           value={dedupeScreenshots}
-          onLabel={t("settings.active")}
-          offLabel={t("settings.inactive")}
           onChange={(next) => {
             setDedupeScreenshots(next);
             return saveSetting("dedupe_screenshots", String(next));
@@ -584,8 +564,6 @@ export function SettingsPage() {
           label={t("settings.video.label")}
           description={t("settings.video.sub")}
           value={recordFullVideo}
-          onLabel={t("settings.active")}
-          offLabel={t("settings.inactive")}
           onChange={(next) => {
             setRecordFullVideo(next);
             return saveSetting("record_full_video", String(next));
@@ -620,8 +598,6 @@ export function SettingsPage() {
           label={t("settings.mic.label")}
           description={t("settings.mic.sub")}
           value={recordAudio}
-          onLabel={t("settings.active")}
-          offLabel={t("settings.inactive")}
           onChange={(next) => {
             setRecordAudio(next);
             return saveSetting("record_audio", String(next));
@@ -632,8 +608,6 @@ export function SettingsPage() {
           label={t("settings.transcription.label")}
           description={t("settings.transcription.sub")}
           value={transcribeAudio}
-          onLabel={t("settings.active")}
-          offLabel={t("settings.inactive")}
           onChange={(next) => {
             setTranscribeAudio(next);
             return saveSetting("transcribe_audio", String(next));
@@ -642,7 +616,7 @@ export function SettingsPage() {
 
         {transcribeAudio && (
           <div className="settings-subpanel">
-            <div className="settings-subpanel-title">Configurazione Motore di Trascrizione</div>
+            <div className="settings-subpanel-title">{t("settings.transcription_engine.title")}</div>
 
             <div className="settings-inline-field">
               <label>{t("settings.transcription_provider")}</label>
@@ -655,7 +629,7 @@ export function SettingsPage() {
                   await saveSetting("transcription_provider_id", val);
                 }}
               >
-                <option value="">Usa Provider Attivo Globale</option>
+                <option value="">Usa il provider AI attivo</option>
                 {providers.map((p) => (
                   <option key={p.id} value={p.id}>
                     {p.name} ({p.provider_type})
@@ -700,11 +674,11 @@ export function SettingsPage() {
                 }}
               >
                 <option value="it">Italiano (it)</option>
-                <option value="en">English (en)</option>
-                <option value="es">Español (es)</option>
-                <option value="fr">Français (fr)</option>
-                <option value="de">Deutsch (de)</option>
-                <option value="auto">Auto-detect (auto)</option>
+                <option value="en">Inglese (en)</option>
+                <option value="es">Spagnolo (es)</option>
+                <option value="fr">Francese (fr)</option>
+                <option value="de">Tedesco (de)</option>
+                <option value="auto">Rilevamento automatico (auto)</option>
               </select>
             </div>
 
@@ -716,8 +690,6 @@ export function SettingsPage() {
           label={t("settings.dense.label")}
           description={t("settings.dense.sub")}
           value={captureAllEvents}
-          onLabel={t("settings.active")}
-          offLabel={t("settings.inactive")}
           onChange={(next) => {
             setCaptureAllEvents(next);
             return saveSetting("capture_all_events", String(next));
@@ -790,18 +762,18 @@ export function SettingsPage() {
       </div>
 
       <div className="card set-card">
-        <h3>Parametri AI & Modalità Thinking</h3>
+        <h3>Parametri AI e ragionamento</h3>
         <div className="sub">
-          Controlla il ragionamento (Think / No-Think) e specifica parametri JSON personalizzati inviati alle API dei modelli AI (LM Studio, Ollama, OpenAI, Claude, ecc.).
+          Scegli se il modello AI deve ragionare prima di rispondere e aggiungi parametri JSON personalizzati alle richieste (LM Studio, Ollama, OpenAI, Claude, ecc.).
         </div>
 
         <div className="settings-section">
-          <label className="settings-label">Modalità Ragionamento (Think / No-Think)</label>
+          <label className="settings-label">Modalità ragionamento</label>
           <div className="seg settings-seg">
             {[
-              { value: "auto", label: "Automatico (Consigliato)" },
-              { value: "think", label: "Think Abilitato" },
-              { value: "no_think", label: "Disabilita Think" },
+              { value: "auto", label: "Automatico (consigliato)" },
+              { value: "think", label: "Ragionamento attivo" },
+              { value: "no_think", label: "Ragionamento disattivo" },
             ].map((mode) => (
               <button
                 key={mode.value}
@@ -819,17 +791,17 @@ export function SettingsPage() {
 
           <div className="settings-summary">
             <div className="settings-summary-row">
-              <span className="settings-summary-key">📝 Generazione Documento:</span>
+              <span className="settings-summary-key">📝 Generazione della guida:</span>
               <span className={aiThinkingMode === "no_think" ? "settings-summary-off" : "settings-summary-on"}>
                 {aiThinkingMode === "no_think"
-                  ? "⚡ No-Think (disattivato da impostazione)"
-                  : "🧠 Think attivo (analizza ed elabora le azioni con ragionamento)"}
+                  ? "⚡ Senza ragionamento (disattivato da questa impostazione)"
+                  : "🧠 Con ragionamento (il modello analizza le azioni prima di scrivere)"}
               </span>
             </div>
             <div className="settings-summary-row">
-              <span className="settings-summary-key">🌐 Traduzione Documento:</span>
+              <span className="settings-summary-key">🌐 Traduzione della guida:</span>
               <span className="settings-summary-info">
-                ⚡ No-Think forzato (traduzione diretta, massima velocità e zero riflessioni interne)
+                ⚡ Sempre senza ragionamento (traduzione diretta, più veloce)
               </span>
             </div>
           </div>
@@ -838,12 +810,12 @@ export function SettingsPage() {
         <div className="settings-section">
           <label className="settings-label">Lingua della documentazione generata</label>
           <div className="sub settings-help">
-            Lingua in cui l'AI scrive la guida. I titoli delle sezioni seguono la lingua scelta, così l'export HTML li riconosce.
+            Lingua in cui l'AI scrive la guida. Anche i titoli delle sezioni seguono la lingua scelta, così l'esportazione HTML li riconosce.
           </div>
           <div className="seg settings-seg-inline">
             {[
               { label: "Italiano", val: "Italian" },
-              { label: "English", val: "English" },
+              { label: "Inglese", val: "English" },
             ].map((item) => (
               <button
                 key={item.val}
@@ -862,19 +834,19 @@ export function SettingsPage() {
         </div>
 
         <div className="settings-section">
-          <label className="settings-label">Timeout Generazione Documentazione AI</label>
+          <label className="settings-label">Tempo massimo per la generazione della guida</label>
           <div className="sub settings-help">
-            Tempo massimo di attesa per la stesura della documentazione (il consolidamento dei passaggi usa metà di questo tempo). Allo scadere viene usato il template base. Per guide lunghe o modelli locali (Ollama / LM Studio) usa 600s o più.
+            Quanto aspettare la risposta dell'AI mentre scrive la guida (il raggruppamento dei passi usa metà di questo tempo). Allo scadere viene usata la guida di base, senza AI. Per guide lunghe o modelli locali (Ollama / LM Studio) usa 10 minuti o più.
           </div>
           <div className="settings-timeout-row">
             <div className="seg settings-seg-inline">
               {[
-                { label: "60s", val: "60" },
-                { label: "120s (2m)", val: "120" },
-                { label: "180s (3m)", val: "180" },
-                { label: "300s (5m)", val: "300" },
-                { label: "600s (10m - Consigliato)", val: "600" },
-                { label: "1200s (20m)", val: "1200" },
+                { label: "1 min", val: "60" },
+                { label: "2 min", val: "120" },
+                { label: "3 min", val: "180" },
+                { label: "5 min", val: "300" },
+                { label: "10 min (consigliato)", val: "600" },
+                { label: "20 min", val: "1200" },
               ].map((item) => (
                 <button
                   key={item.val}
@@ -883,7 +855,7 @@ export function SettingsPage() {
                   onClick={async () => {
                     setAiGenerationTimeout(item.val);
                     await saveSetting("ai_generation_timeout_seconds", item.val);
-                    setMessage(`Timeout AI impostato a ${item.val} secondi`);
+                    setMessage(`Tempo massimo impostato a ${item.val} secondi`);
                   }}
                 >
                   {item.label}
@@ -906,31 +878,31 @@ export function SettingsPage() {
                   }
                 }}
               />
-              <span className="settings-note">sec</span>
+              <span className="settings-note">secondi</span>
             </div>
           </div>
         </div>
 
         <div className="settings-section">
           <div className="settings-params-head">
-            <label className="settings-label">Parametri Personalizzati Richieste (JSON)</label>
+            <label className="settings-label">{t("settings.custom_params.label")}</label>
             <div className="settings-presets">
               <button type="button" className="settings-preset" onClick={() => applyPreset({ temperature: 0.2 })}>
-                Preset Base
+                Valori base
               </button>
               <button
                 type="button"
                 className="settings-preset"
                 onClick={() => applyPreset({ temperature: 0.3, top_p: 0.95, max_tokens: 32768 })}
               >
-                Preset LM Studio / OpenAI
+                Valori LM Studio / OpenAI
               </button>
               <button
                 type="button"
                 className="settings-preset"
                 onClick={() => applyPreset({ options: { temperature: 0.2, num_ctx: 32768 } })}
               >
-                Preset Ollama
+                Valori Ollama
               </button>
               <button type="button" className="settings-preset muted" onClick={() => applyPreset({})}>
                 Svuota ({"{}"})
@@ -939,7 +911,7 @@ export function SettingsPage() {
           </div>
 
           <div className="settings-note settings-params-help">
-            Questi parametri verranno inseriti direttamente nel payload della richiesta API inviata ai modelli AI.
+            Questi parametri vengono aggiunti così come sono a ogni richiesta inviata al modello AI.
           </div>
 
           <textarea
@@ -969,8 +941,8 @@ export function SettingsPage() {
               <span className="settings-json-ok">✓ JSON valido (salvato automaticamente)</span>
             )}
 
-            <AppButton size="sm" kind="ghost" onClick={() => handleSaveCustomParams(aiCustomParams)}>
-              💾 Salva Parametri
+            <AppButton size="sm" kind="ghost" icon="save" onClick={() => handleSaveCustomParams(aiCustomParams)}>
+              Salva parametri
             </AppButton>
           </div>
         </div>
@@ -984,11 +956,11 @@ export function SettingsPage() {
               <h3>{provider.name}</h3>
               <div className="pid">{provider.provider_type}</div>
             </div>
-            {activeProvider?.id === provider.id ? <span className="active-tag">● Active</span> : null}
+            {activeProvider?.id === provider.id ? <span className="active-tag">● Attivo</span> : null}
           </div>
           <div className="field-row settings-provider-row">
             <div className="field">
-              <label htmlFor={`${provider.id}-key`}>API Key</label>
+              <label htmlFor={`${provider.id}-key`}>Chiave API</label>
               <input
                 id={`${provider.id}-key`}
                 type="password"
@@ -998,7 +970,7 @@ export function SettingsPage() {
               />
             </div>
             <div className="field">
-              <label htmlFor={`${provider.id}-model`}>Model</label>
+              <label htmlFor={`${provider.id}-model`}>Modello</label>
               <input
                 id={`${provider.id}-model`}
                 defaultValue={provider.model ?? ""}
@@ -1007,7 +979,7 @@ export function SettingsPage() {
             </div>
           </div>
           <div className="field">
-            <label htmlFor={`${provider.id}-url`}>Base URL</label>
+            <label htmlFor={`${provider.id}-url`}>URL di base</label>
             <input
               id={`${provider.id}-url`}
               defaultValue={provider.base_url ?? ""}
@@ -1018,7 +990,7 @@ export function SettingsPage() {
             {(["input", "output"] as const).map((kind) => (
               <div className="field" key={kind}>
                 <label htmlFor={`${provider.id}-price-${kind}`}>
-                  {kind === "input" ? "Prezzo input ($ / 1M token)" : "Prezzo output ($ / 1M token)"}
+                  {kind === "input" ? "Prezzo ingresso ($ / 1M token)" : "Prezzo uscita ($ / 1M token)"}
                 </label>
                 <input
                   id={`${provider.id}-price-${kind}`}
@@ -1052,47 +1024,11 @@ export function SettingsPage() {
                 }
               }}
             >
-              {activeProvider?.id === provider.id ? "Active provider" : "Set Active"}
+              {activeProvider?.id === provider.id ? "Provider attivo" : "Usa questo provider"}
             </AppButton>
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-/** Label + description on the left, a two-option segmented switch on the right. */
-function SettingSwitch({
-  label,
-  description,
-  value,
-  onLabel,
-  offLabel,
-  onChange,
-  narrow = false,
-}: {
-  label: string;
-  description?: string;
-  value: boolean;
-  onLabel: string;
-  offLabel: string;
-  onChange: (next: boolean) => void | Promise<void>;
-  narrow?: boolean;
-}) {
-  return (
-    <div className={`field setting-row${narrow ? " narrow" : ""}`}>
-      <div>
-        <label>{label}</label>
-        {description ? <div className="setting-desc">{description}</div> : null}
-      </div>
-      <div className="seg">
-        <button type="button" className={value ? "on" : ""} onClick={() => onChange(true)}>
-          {onLabel}
-        </button>
-        <button type="button" className={!value ? "on" : ""} onClick={() => onChange(false)}>
-          {offLabel}
-        </button>
-      </div>
     </div>
   );
 }

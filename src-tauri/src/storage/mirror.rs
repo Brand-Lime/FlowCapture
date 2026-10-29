@@ -407,7 +407,7 @@ fn sync_session_with_progress(
         return Ok(None);
     }
     std::fs::create_dir_all(&root)
-        .with_context(|| format!("cannot create the sessions folder {}", root.display()))?;
+        .with_context(|| format!("impossibile creare la cartella sessioni {}", root.display()))?;
 
     // The entries first: to know how much has to be copied (progress shown to the user) and
     // whether anything changed.
@@ -485,7 +485,7 @@ fn write_archive(
     let partial = partial_path(&target);
     if let Err(err) = write_bundle_archive(&partial, plan, manifest, progress.map(|p| &p.done)) {
         let _ = std::fs::remove_file(&partial);
-        return Err(err).context("writing the .flowcapture archive in the sessions folder");
+        return Err(err).context("scrittura del file .flowcapture nella cartella sessioni");
     }
     replace_file(&partial, &target)?;
     db.set_setting(&fingerprint_key, &fingerprint)?;
@@ -786,7 +786,7 @@ impl BundleSink for DirSink<'_> {
         // Copy next to the target and rename, so a reader never sees a half-written file.
         let partial = partial_path(&target);
         copy_counting(source, &partial, self.copied)
-            .with_context(|| format!("copying {} to the sessions folder", source.display()))?;
+            .with_context(|| format!("copia di {} nella cartella sessioni", source.display()))?;
         replace_file(&partial, &target)
     }
 
@@ -819,7 +819,7 @@ fn replace_file(partial: &Path, target: &Path) -> Result<()> {
         let _ = std::fs::remove_file(target);
         if let Err(err) = std::fs::rename(partial, target) {
             let _ = std::fs::remove_file(partial);
-            return Err(err).with_context(|| format!("writing {}", target.display()));
+            return Err(err).with_context(|| format!("scrittura di {}", target.display()));
         }
     }
     Ok(())

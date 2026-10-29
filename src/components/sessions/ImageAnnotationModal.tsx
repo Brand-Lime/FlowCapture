@@ -16,6 +16,15 @@ interface ImageAnnotationModalProps {
 
 export type ToolType = "select" | "click" | "badge" | "rect" | "circle" | "highlight" | "text";
 
+const ITEM_TYPE_LABELS: Record<string, string> = {
+  click: "click",
+  badge: "numero del passo",
+  rect: "rettangolo",
+  circle: "cerchio",
+  highlight: "evidenziatore",
+  text: "testo",
+};
+
 export interface AnnotationItem {
   id: string;
   type: ToolType;
@@ -50,7 +59,7 @@ export function ImageAnnotationModal({
     { label: t("annotation.color.green", "Green"), val: "#22c55e" },
     { label: t("annotation.color.purple", "Purple"), val: "#a855f7" },
     { label: t("annotation.color.orange", "Orange"), val: "#f97316" },
-    { label: "Cyan", val: "#06b6d4" },
+    { label: "Azzurro", val: "#06b6d4" },
     { label: t("annotation.color.white", "White"), val: "#ffffff" },
   ];
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -72,7 +81,7 @@ export function ImageAnnotationModal({
 
   const [asNewStep, setAsNewStep] = useState(false);
   const [stepTitle, setStepTitle] = useState(
-    screenshot.trigger ? t("md.step_prefix", "Step: ") + screenshot.trigger : t("md.step_new", "New Step")
+    screenshot.trigger ? t("md.step_prefix", "Passo:") + " " + screenshot.trigger : t("md.step_new", "Nuovo passo")
   );
   const [stepDescription, setStepDescription] = useState("");
   const [scopeToStep, setScopeToStep] = useState<boolean>(Boolean(stepIndex));
@@ -654,7 +663,7 @@ export function ImageAnnotationModal({
       let newStepPayload: NewStepPayload | undefined = undefined;
       if (asNewStep) {
         newStepPayload = {
-          title: stepTitle.trim() || "Nuovo Passo",
+          title: stepTitle.trim() || "Nuovo passo",
           description: stepDescription.trim() || "Passaggio aggiunto manualmente dall'editor.",
         };
       }
@@ -685,13 +694,13 @@ export function ImageAnnotationModal({
   const selectedItem = items.find((it) => it.id === selectedId);
 
   const tools: { id: ToolType; label: string; title: string }[] = [
-    { id: "select", label: "↖ Seleziona & Sposta", title: "Seleziona e sposta gli elementi con il mouse" },
-    { id: "click", label: "🎯 Marker Click", title: "Posiziona o modifica il punto di click target" },
-    { id: "badge", label: `➊ Badge Step (#${badgeCounter})`, title: "Inserisci un badge numerato con testo opzionale" },
+    { id: "select", label: "↖ Seleziona e sposta", title: "Seleziona e sposta gli elementi con il mouse" },
+    { id: "click", label: "🎯 Punto di click", title: "Posiziona o sposta il punto in cui è stato fatto click" },
+    { id: "badge", label: `➊ Numero passo (#${badgeCounter})`, title: "Inserisci un numero di passo con un testo facoltativo" },
     { id: "rect", label: "▭ Rettangolo", title: "Disegna un rettangolo" },
     { id: "circle", label: "◯ Cerchio", title: "Disegna un cerchio" },
-    { id: "highlight", label: "░ Evidenziatore", title: "Disegna un'area evidenziatore fluorescente" },
-    { id: "text", label: "🔤 Testo Libero", title: "Inserisci didascalia di testo" },
+    { id: "highlight", label: "░ Evidenziatore", title: "Evidenzia un'area con un colore fluorescente" },
+    { id: "text", label: "🔤 Testo libero", title: "Inserisci una didascalia" },
   ];
 
   const badgePositions = [
@@ -709,10 +718,10 @@ export function ImageAnnotationModal({
       <div className="anno-header">
         <div className="anno-header-info">
           <span className="anno-header-icon">🎨</span>
-          <h3>Editor Screenshot & Annotazioni Interattivo</h3>
+          <h3>Modifica screenshot e annotazioni</h3>
           {stepIndex != null && <span className="anno-step-pill">Passo {stepIndex}</span>}
           <span className="anno-count">
-            {items.length} elementi · {selectedItem ? `Selezionato: ${selectedItem.type}` : "Nessuna selezione"}
+            {items.length} elementi · {selectedItem ? `Selezionato: ${ITEM_TYPE_LABELS[selectedItem.type] ?? selectedItem.type}` : "Nessuna selezione"}
           </span>
         </div>
 
@@ -722,9 +731,9 @@ export function ImageAnnotationModal({
             kind="ghost"
             onClick={deleteSelectedItem}
             disabled={!selectedId}
-            title="Elimina elemento selezionato (Canc / Backspace)"
+            title="Elimina l'elemento selezionato (Canc / Backspace)"
           >
-            🗑️ Elimina Elemento
+            🗑️ Elimina elemento
           </AppButton>
           <AppButton size="sm" kind="ghost" onClick={handleReset} title="Rimuovi tutte le annotazioni">
             ↺ Ripristina
@@ -732,8 +741,8 @@ export function ImageAnnotationModal({
           <AppButton size="sm" kind="ghost" onClick={onClose}>
             Chiudi
           </AppButton>
-          <AppButton size="sm" kind="primary" onClick={handleSave} disabled={saving}>
-            {saving ? "Salvataggio..." : "💾 Salva Modifiche"}
+          <AppButton size="sm" kind="primary" icon="save" onClick={handleSave} disabled={saving}>
+            {saving ? "Salvataggio…" : "Salva modifiche"}
           </AppButton>
         </div>
       </div>
@@ -753,9 +762,9 @@ export function ImageAnnotationModal({
             <div className="anno-scope">
               <label className="anno-scope-label">
                 <input type="checkbox" checked={scopeToStep} onChange={(e) => setScopeToStep(e.target.checked)} />
-                <span>Associa a Passo {stepIndex}</span>
+                <span>Associa al passo {stepIndex}</span>
               </label>
-              <div className="anno-scope-note">Salva queste annotazioni specificamente per questo step.</div>
+              <div className="anno-scope-note">Le annotazioni valgono solo per questo passo.</div>
             </div>
           )}
 
@@ -777,7 +786,7 @@ export function ImageAnnotationModal({
           </div>
 
           <div>
-            <div className="anno-section-title">Colore {selectedItem ? "(Element)" : "(New)"}</div>
+            <div className="anno-section-title">Colore {selectedItem ? "(elemento)" : "(nuovo)"}</div>
             <div className="anno-palette">
               {PALETTE.map((c) => {
                 const isCur = selectedItem ? selectedItem.color === c.val : activeColor === c.val;
@@ -811,7 +820,7 @@ export function ImageAnnotationModal({
           </div>
 
           <div className="anno-footnote">
-            💡 Clicca su un elemento per selezionarlo e spostarlo. Trascina la casella di testo del badge per posizionarla dove preferisci!
+            💡 Clicca su un elemento per selezionarlo e spostarlo. Trascina il testo del numero per posizionarlo dove preferisci.
           </div>
         </div>
 
@@ -827,13 +836,13 @@ export function ImageAnnotationModal({
 
         <div className="anno-inspector">
           <div className="anno-inspector-block">
-            <div className="anno-section-title">Elemento Selezionato</div>
+            <div className="anno-section-title">Elemento selezionato</div>
 
             {selectedItem ? (
               <div className="anno-stack">
                 <div className="anno-selected-head">
                   <span>
-                    Tipo: <span className="anno-type">{selectedItem.type.toUpperCase()}</span>
+                    Tipo: <span className="anno-type">{(ITEM_TYPE_LABELS[selectedItem.type] ?? selectedItem.type).toUpperCase()}</span>
                   </span>
                   <button type="button" className="btn btn-ghost btn-sm anno-delete" onClick={deleteSelectedItem}>
                     🗑️ Elimina
@@ -843,7 +852,7 @@ export function ImageAnnotationModal({
                 {selectedItem.type === "badge" && (
                   <div className="anno-stack tight">
                     <div>
-                      <label className="anno-label">Numero Step:</label>
+                      <label className="anno-label">Numero del passo:</label>
                       <input
                         type="number"
                         className="anno-input"
@@ -854,7 +863,7 @@ export function ImageAnnotationModal({
                     </div>
 
                     <div>
-                      <label className="anno-label">Testo del Badge Step:</label>
+                      <label className="anno-label">Testo accanto al numero:</label>
                       <input
                         type="text"
                         className="anno-input"
@@ -865,7 +874,7 @@ export function ImageAnnotationModal({
                     </div>
 
                     <div>
-                      <div className="anno-label">Posizione Rapida Testo:</div>
+                      <div className="anno-label">Posizione del testo:</div>
                       <div className="anno-positions">
                         {badgePositions.map((pos) => (
                           <button
@@ -878,7 +887,7 @@ export function ImageAnnotationModal({
                           </button>
                         ))}
                       </div>
-                      <div className="anno-hint">💡 Puoi anche trascinare il testo direttamente con il mouse sulla canvas!</div>
+                      <div className="anno-hint">💡 Puoi anche trascinare il testo con il mouse direttamente sull'immagine.</div>
                     </div>
                   </div>
                 )}
@@ -909,20 +918,20 @@ export function ImageAnnotationModal({
               </div>
             ) : (
               <div className="anno-muted anno-empty">
-                Nessun elemento selezionato. Clicca su una forma, un badge o il click per modificarlo, spostarlo o cambiarne colore.
+                Nessun elemento selezionato. Clicca su una forma, un numero o il punto di click per modificarlo, spostarlo o cambiarne il colore.
               </div>
             )}
           </div>
 
           <div>
-            <div className="anno-section-title">Integrazione Guida</div>
+            <div className="anno-section-title">Inserimento nella guida</div>
 
             <label className="anno-newstep">
               <input type="checkbox" checked={asNewStep} onChange={(e) => setAsNewStep(e.target.checked)} />
               <div>
-                <div className="anno-newstep-title">Aggiungi come nuovo Step</div>
+                <div className="anno-newstep-title">Aggiungi come nuovo passo</div>
                 <div className="anno-note">
-                  Inserisce questa immagine modificata come nuovo passaggio esplicito nella sequenza e nel Markdown
+                  Inserisce questa immagine modificata come nuovo passo nella guida
                 </div>
               </div>
             </label>
@@ -930,18 +939,18 @@ export function ImageAnnotationModal({
             {asNewStep && (
               <div className="anno-stack tight anno-newstep-fields">
                 <div>
-                  <label className="anno-label">Titolo del Passo:</label>
+                  <label className="anno-label">Titolo del passo:</label>
                   <input type="text" className="anno-input" value={stepTitle} onChange={(e) => setStepTitle(e.target.value)} />
                 </div>
 
                 <div>
-                  <label className="anno-label">Descrizione del Passo:</label>
+                  <label className="anno-label">Descrizione del passo:</label>
                   <textarea
                     rows={3}
                     className="anno-input anno-textarea"
                     value={stepDescription}
                     onChange={(e) => setStepDescription(e.target.value)}
-                    placeholder="Descrivi dettagliatamente l'operazione..."
+                    placeholder="Descrivi l'operazione in dettaglio…"
                   />
                 </div>
               </div>

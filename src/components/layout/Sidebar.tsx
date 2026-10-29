@@ -2,7 +2,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { Icon } from "@/components/ui/Icon";
 import { Logo } from "@/components/ui/Logo";
 import { useSessionsContext } from "@/context/SessionsContext";
-import { statusDotClass } from "@/lib/icons";
+import { statusDotClass, statusLabel } from "@/lib/icons";
 import { formatDuration } from "@/lib/utils";
 
 interface SidebarProps {
@@ -21,7 +21,7 @@ export function Sidebar({ onClose }: SidebarProps) {
           <Logo />
           <div>
             <div className="lt">FlowCapture</div>
-            <div className="ls">Workflow documentation</div>
+            <div className="ls">Guide passo-passo</div>
           </div>
         </div>
         {onClose && (
@@ -47,12 +47,12 @@ export function Sidebar({ onClose }: SidebarProps) {
         to="/settings"
         className={({ isActive }) => `nav-i${isActive ? " active" : ""}`}
       >
-        <Icon name="settings" /> Settings
+        <Icon name="settings" /> Impostazioni
       </NavLink>
 
       <div className="side-sessions">
         <div className="sh">
-          <span>Sessions</span>
+          <span>Sessioni</span>
           <span>{sessions.length}</span>
         </div>
         <div className="side-sessions-list">
@@ -73,7 +73,7 @@ export function Sidebar({ onClose }: SidebarProps) {
               <div className="st">{session.title}</div>
               <div className="sm">
                 <span className={`dotstat ${statusDotClass(session.status)}`} />
-                {session.status} · {formatDuration(session.duration)}
+                {statusLabel(session.status)} · {formatDuration(session.duration)}
               </div>
             </div>
           ))}
@@ -84,8 +84,8 @@ export function Sidebar({ onClose }: SidebarProps) {
         <div className="ft">
           <Icon name="shield" size={15} />
           <span>
-            <b style={{ color: "var(--text-2)" }}>Local-first.</b> Sessions,
-            screenshots and exports never leave this Mac.
+            <b style={{ color: "var(--text-2)" }}>Dati in sede.</b> Sessioni, screenshot ed
+            esportazioni restano su questo computer e nella cartella sessioni.
           </span>
         </div>
       </div>

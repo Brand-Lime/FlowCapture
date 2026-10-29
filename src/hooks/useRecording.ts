@@ -287,7 +287,7 @@ export function useRecording() {
       const permissions = await api.prepareRecordingPermissions();
       if (!permissions.can_record) {
         throw new Error(
-          `${permissions.message} Enable \`${permissions.process_name}\` in System Settings, then quit and reopen FlowCapture before trying again.`,
+          `${permissions.message} Abilita \`${permissions.process_name}\` nelle impostazioni di sistema, poi chiudi e riapri FlowCapture prima di riprovare.`,
         );
       }
 
@@ -334,7 +334,7 @@ export function useRecording() {
       }
 
       const session = await api.startRecording(
-        title ?? "New Workflow Session",
+        title ?? "Nuova sessione",
         selectedMonitorId || undefined,
       );
       setPauseClock(NO_PAUSES);
@@ -440,7 +440,7 @@ export function useRecording() {
   const selectedMonitor = monitors.find((m) => m.id === selectedMonitorId);
   const selectedMonitorName = selectedMonitor
     ? `${selectedMonitor.name}${selectedMonitor.is_primary ? " (Principale)" : ""} · ${selectedMonitor.width}x${selectedMonitor.height}`
-    : "Primary Display";
+    : "Schermo principale";
 
   return {
     recording,

@@ -339,6 +339,13 @@ function Toggle({ active, onClick }: { active: boolean; onClick: () => void }) {
   );
 }
 
+const ACCENT_NAMES: Record<ExportAccent, string> = {
+  mint: "menta",
+  blue: "blu",
+  violet: "viola",
+  amber: "ambra",
+};
+
 export function ExportPanel({
   session,
   steps,
@@ -414,7 +421,7 @@ export function ExportPanel({
         <div className="cfg-head">
           <Logo size={34} />
           <div>
-            <div className="lt">{t("session.export.btn", "Export")}</div>
+            <div className="lt">{t("session.export.btn", "Esporta")}</div>
             <div className="ls">{t("export.options", "Export Options")}</div>
           </div>
         </div>
@@ -447,7 +454,7 @@ export function ExportPanel({
                   className={options.theme === value ? "on" : ""}
                   onClick={() => patchOptions({ theme: value })}
                 >
-                  {value === "dark" ? "Dark" : "Light"}
+                  {value === "dark" ? "Scuro" : "Chiaro"}
                 </button>
               ))}
             </div>
@@ -462,7 +469,8 @@ export function ExportPanel({
                   type="button"
                   className={`sw${options.accent === accent ? " on" : ""}`}
                   style={{ background: ACCENT_COLORS[accent].dark }}
-                  aria-label={`${accent} accent`}
+                  aria-label={`Colore ${ACCENT_NAMES[accent]}`}
+                  title={ACCENT_NAMES[accent]}
                   onClick={() => patchOptions({ accent })}
                 />
               ))}
@@ -479,33 +487,33 @@ export function ExportPanel({
                 patchOptions({ pageSize: event.target.value as ExportPageSize })
               }
             >
-              <option value="letter">US Letter · 8.5 × 11 in</option>
+              <option value="letter">Lettera USA · 8,5 × 11 in</option>
               <option value="a4">A4 · 210 × 297 mm</option>
             </select>
           </div>
 
           <div className="cfg-sec">
-            <h4>Include</h4>
+            <h4>Includi</h4>
             <div className="row">
-              <span className="cfg-label">Cover page</span>
+              <span className="cfg-label">Copertina</span>
               <Toggle active={options.cover} onClick={() => patchOptions({ cover: !options.cover })} />
             </div>
             <div className="row">
-              <span className="cfg-label">Screenshots</span>
+              <span className="cfg-label">Screenshot</span>
               <Toggle
                 active={options.screenshots}
                 onClick={() => patchOptions({ screenshots: !options.screenshots })}
               />
             </div>
             <div className="row">
-              <span className="cfg-label">Step numbers</span>
+              <span className="cfg-label">Numeri dei passi</span>
               <Toggle
                 active={options.stepNumbers}
                 onClick={() => patchOptions({ stepNumbers: !options.stepNumbers })}
               />
             </div>
             <div className="row">
-              <span className="cfg-label">Timestamps</span>
+              <span className="cfg-label">Orari</span>
               <Toggle
                 active={options.timestamps}
                 onClick={() => patchOptions({ timestamps: !options.timestamps })}
@@ -514,7 +522,7 @@ export function ExportPanel({
             <div className="row">
               <div>
                 <span className="cfg-label">Annotazioni grafiche</span>
-                <div className="cfg-note">Includi evidenziazioni, click e badge disegnati</div>
+                <div className="cfg-note">Includi evidenziazioni, click e numeri disegnati</div>
               </div>
               <Toggle
                 active={options.annotations}
@@ -524,23 +532,23 @@ export function ExportPanel({
           </div>
 
           <div className="cfg-sec">
-            <h4>Branding</h4>
+            <h4>Marchio</h4>
             <div className="row">
-              <span className="cfg-label">FlowCapture watermark</span>
+              <span className="cfg-label">Logo FlowCapture</span>
               <Toggle
                 active={options.branding}
                 onClick={() => patchOptions({ branding: !options.branding })}
               />
             </div>
             <div style={{ fontSize: 12, color: "var(--dim)", lineHeight: 1.5, marginTop: 4 }}>
-              Turn off to export a clean, white-label document with no FlowCapture logo or footer.
+              Disattivalo per esportare un documento neutro, senza logo né piè di pagina di FlowCapture.
             </div>
           </div>
         </div>
 
         <div className="cfg-foot">
           <AppButton kind="primary" icon="download" disabled={busy} onClick={handlePrimaryExport}>
-            {format === "pdf" ? "Save as PDF" : "Download HTML"}
+            {format === "pdf" ? "Salva come PDF" : "Salva come HTML"}
           </AppButton>
           <div className="btn-row">
             <AppButton
@@ -554,7 +562,7 @@ export function ExportPanel({
             </AppButton>
           </div>
           <AppButton icon="copy" disabled={!exports.length} onClick={handleCopyPath}>
-            {copied ? "Copied path" : "Copy latest path"}
+            {copied ? "Percorso copiato" : "Copia percorso ultimo file"}
           </AppButton>
         </div>
       </aside>
@@ -563,7 +571,8 @@ export function ExportPanel({
         <button
           type="button"
           className="sidebar-toggle"
-          aria-label={sidebarOpen ? "Hide export settings" : "Show export settings"}
+          aria-label={sidebarOpen ? "Nascondi opzioni di esportazione" : "Mostra opzioni di esportazione"}
+          title={sidebarOpen ? "Nascondi opzioni di esportazione" : "Mostra opzioni di esportazione"}
           aria-expanded={sidebarOpen}
           onClick={() => setSidebarOpen((open) => !open)}
         >
@@ -647,7 +656,7 @@ export function ExportPanel({
                 {parsedDoc.steps.length === 0 ? (
                   <div className="step no-num">
                     <div>
-                      <p>Generate documentation first to populate export steps.</p>
+                      <p>Genera prima la documentazione per vedere qui i passi.</p>
                     </div>
                   </div>
                 ) : (
@@ -720,13 +729,13 @@ export function ExportPanel({
       </div>
 
       <div className="export-history">
-        <h3>Export history</h3>
+        <h3>Esportazioni fatte</h3>
         <div className="pd" style={{ color: "var(--muted)", fontSize: 14, marginBottom: 14 }}>
-          Open exported files in their folder from here.
+          Da qui puoi aprire la cartella dei file esportati.
         </div>
         <div className="exp-list">
           {exports.length === 0 ? (
-            <div className="pd">No exports yet. Configure your document and save it below.</div>
+            <div className="pd">Nessuna esportazione. Scegli le opzioni a sinistra e salva il documento.</div>
           ) : (
             exports.map((record) => (
               <div className="exp" key={record.id}>
@@ -743,7 +752,7 @@ export function ExportPanel({
                     className="show-folder"
                     onClick={() => onRevealExport(record.path)}
                   >
-                    <Icon name="folder" size={15} /> Show in Folder
+                    <Icon name="folder" size={15} /> Mostra nella cartella
                   </button>
                 </div>
               </div>
