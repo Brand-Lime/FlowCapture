@@ -44,6 +44,8 @@ export function SettingsPage() {
   // Off: the folder stays set (e.g. for the admin import) but the sessions are not written into it.
   const [mirrorWrite, setMirrorWrite] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
+  // Admin only: folder with the complete, unzipped copy of every session.
+  const [fullCopyDir, setFullCopyDir] = useState<string | null>(null);
   const extension = useBrowserExtensionStatus();
 
   useEffect(() => {
@@ -149,6 +151,7 @@ export function SettingsPage() {
     api.getBrowserBridgeStatus().then(setBridgeInfo).catch(() => {});
     api.getSessionMirrorDir().then(setMirrorDir).catch(() => {});
     api.getSetting("session_mirror_write").then((value) => setMirrorWrite(value !== "false")).catch(() => {});
+    api.getSessionFullCopyDir().then(setFullCopyDir).catch(() => {});
     await refreshDevices();
   }
 
@@ -244,6 +247,33 @@ export function SettingsPage() {
     }
   }
 
+  async function chooseFullCopyDir() {
+    try {
+      const picked = await openDialog({
+        directory: true,
+        multiple: false,
+        title: "Cartella in cui salvare la copia completa di ogni sessione",
+        defaultPath: fullCopyDir ?? undefined,
+      });
+      if (typeof picked !== "string" || !picked) return;
+      const count = await api.setSessionFullCopyDir(picked);
+      setFullCopyDir(picked);
+      setMessage(`Cartella "Copia completa" impostata: copia di ${count} sessioni in corso`);
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
+  async function removeFullCopyDir() {
+    try {
+      await api.setSessionFullCopyDir(null);
+      setFullCopyDir(null);
+      setMessage("Copia completa delle sessioni disattivata (i file già copiati restano dove sono)");
+    } catch (err) {
+      setError(String(err));
+    }
+  }
+
   async function syncMirrorNow() {
     try {
       const count = await api.syncSessionMirror();
@@ -321,15 +351,22 @@ export function SettingsPage() {
 
       <div className="card set-card">
         <h3>Cartella sessioni</h3>
-        <div className="sub">
-          Salva automaticamente una copia di ogni sessione in una cartella a tua scelta, come
-          un'esportazione completa: video, audio, screenshot, documentazione, esportazioni e un{" "}
-          <code>manifest.json</code> con passaggi ed eventi. Ogni sessione ha una sottocartella con il suo
-          nome, rinominata insieme alla sessione; la copia si aggiorna da sola a ogni modifica.
-          Puoi indicare anche una cartella di rete condivisa (es. <code>{"\\\\server\\FlowCapture\\nome.cognome"}</code>):
-          se non è raggiungibile, le sessioni vengono copiate appena torna disponibile.
-        </div>
-        {mirrorWrite ? <MirrorStatusBanner /> : null}
+        {isAdmin ? (
+          <div className="sub">
+            Cartella condivisa in cui gli utenti salvano le loro sessioni. Come amministratore questa cartella viene
+            solo letta da "Importa da cartella" (sessioni nuove o modificate di tutti gli utenti): le sessioni di
+            questo computer non vengono mai scritte qui, ma nella "Copia completa" qui sotto.
+          </div>
+        ) : (
+          <div className="sub">
+            Salva automaticamente ogni sessione in questa cartella come file <code>.flowcapture</code> (un unico file
+            con video, audio, screenshot, documentazione ed esportazioni), con il nome della sessione. Il file si
+            aggiorna da solo a ogni modifica. Può essere una cartella di rete condivisa (es.{" "}
+            <code>{"\\\\server\\FlowCapture\\nome.cognome"}</code>): se non è raggiungibile, le sessioni vengono
+            salvate appena torna disponibile.
+          </div>
+        )}
+        {mirrorWrite && !isAdmin ? <MirrorStatusBanner /> : null}
         <div className="mirror-path">
           <Icon name="folder" size={16} />
           <span className={mirrorDir ? "" : "mirror-path-empty"}>{mirrorDir ?? "Nessuna cartella: copia disattivata"}</span>
@@ -343,7 +380,7 @@ export function SettingsPage() {
               <AppButton kind="ghost" onClick={() => api.openSessionMirrorDir().catch((err) => setError(String(err)))}>
                 Apri cartella
               </AppButton>
-              {mirrorWrite ? (
+              {mirrorWrite && !isAdmin ? (
                 <AppButton kind="ghost" onClick={syncMirrorNow}>
                   Aggiorna ora
                 </AppButton>
@@ -354,7 +391,7 @@ export function SettingsPage() {
             </>
           ) : null}
         </div>
-        {mirrorDir ? (
+        {mirrorDir && !isAdmin ? (
           <SettingSwitch
             narrow
             label="Salva le sessioni in questa cartella"
@@ -364,13 +401,51 @@ export function SettingsPage() {
             onChange={(next) => changeMirrorWrite(next)}
           />
         ) : null}
-        {mirrorDir && !mirrorWrite ? (
+        {mirrorDir && !mirrorWrite && !isAdmin ? (
           <div className="pd" style={{ marginTop: 8 }}>
             La cartella resta impostata (serve a "Importa da cartella" per gli amministratori), ma le sessioni di questo
             computer non vengono scritte al suo interno.
           </div>
         ) : null}
       </div>
+
+      {isAdmin ? (
+        <div className="card set-card">
+          <h3>Copia completa delle sessioni (amministratore)</h3>
+          <div className="sub">
+            Salva automaticamente una copia di ogni sessione registrata su questo computer, come un'esportazione
+            completa non compressa: video, audio, screenshot, documentazione, esportazioni e un{" "}
+            <code>manifest.json</code> con passaggi ed eventi. Ogni sessione ha una sottocartella con il suo nome,
+            rinominata insieme alla sessione; la copia si aggiorna da sola a ogni modifica. Le sessioni importate da
+            altri utenti non vengono copiate qui.
+          </div>
+          {fullCopyDir ? <MirrorStatusBanner /> : null}
+          <div className="mirror-path">
+            <Icon name="folder" size={16} />
+            <span className={fullCopyDir ? "" : "mirror-path-empty"}>
+              {fullCopyDir ?? "Nessuna cartella: copia completa disattivata"}
+            </span>
+          </div>
+          <div className="settings-actions mirror-actions">
+            <AppButton kind="primary" icon="folder" onClick={chooseFullCopyDir}>
+              {fullCopyDir ? "Cambia cartella" : "Scegli cartella"}
+            </AppButton>
+            {fullCopyDir ? (
+              <>
+                <AppButton kind="ghost" onClick={() => api.openSessionFullCopyDir().catch((err) => setError(String(err)))}>
+                  Apri cartella
+                </AppButton>
+                <AppButton kind="ghost" onClick={syncMirrorNow}>
+                  Aggiorna ora
+                </AppButton>
+                <AppButton kind="ghost" onClick={removeFullCopyDir}>
+                  Rimuovi cartella
+                </AppButton>
+              </>
+            ) : null}
+          </div>
+        </div>
+      ) : null}
 
       <div className="card set-card">
         <h3>{t("settings.diagnostics.title")}</h3>

@@ -19,7 +19,7 @@
 #>
 param(
     # Version of the release (SemVer, e.g. 1.0.1). Must be higher than the last published one.
-    [string]$Version = "1.0.0",
+    [string]$Version = "1.1.0",
     # Folder receiving setup and packages (also where vpk looks for the previous release for deltas).
     [string]$OutputDir = "\\srvdati\Ftp\Utilities\FlowCapture",
     # Update feed embedded in the exe: URL (http/https) or folder/share. Empty = no update check.

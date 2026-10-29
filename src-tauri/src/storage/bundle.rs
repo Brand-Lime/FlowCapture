@@ -444,6 +444,11 @@ impl BundleSource {
     }
 }
 
+/// `manifest.json` of a `.flowcapture` archive or session folder, without importing anything.
+pub(crate) fn read_bundle_manifest(path: &Path) -> Result<Vec<u8>> {
+    Ok(BundleSource::open(path)?.read_manifest()?.into_bytes())
+}
+
 /// Imports a `.flowcapture` archive or a session folder of the sessions folder mirror.
 pub fn import_session_bundle(
     db: &Database,

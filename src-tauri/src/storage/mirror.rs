@@ -1,10 +1,17 @@
-//! Session folder mirror: keeps an up-to-date, readable copy of every session in a folder the
-//! user picks (Settings → "Cartella sessioni"), one sub-folder per session named after it.
+//! Session folder mirror: keeps an up-to-date copy of every session recorded on this computer in
+//! a folder, updated by a background worker a moment after the last change.
 //!
-//! Each folder holds the same content as a `.flowcapture` export, unzipped:
-//! `manifest.json` (session, steps, events, screenshots, exports…), `documentation.md`,
-//! `screenshots/`, `media/` (HD video, timelapse, audio) and `exports/`. Renaming a session
-//! renames its folder. Updates run on a background worker, a moment after the last change.
+//! - Users (Settings → "Cartella sessioni", usually a network share): one `<title>.flowcapture`
+//!   archive per session, the complete export that "Importa Sessione" / "Importa da cartella"
+//!   rebuild on any computer.
+//! - Admins (started with `--admin`): the sessions folder is only read ("Importa da cartella"),
+//!   never written. Their sessions go to a second folder ("Copia completa"), one sub-folder per
+//!   session with the content of an export unzipped: `manifest.json` (session, steps, events,
+//!   screenshots, exports…), `documentation.md`, `screenshots/`, `media/` (HD video, timelapse,
+//!   audio) and `exports/`.
+//!
+//! Renaming a session renames its archive / folder. Sessions imported from other computers are
+//! never written back.
 //!
 //! The folder can be a network share: when it cannot be reached (offline, VPN off) the sessions
 //! are remembered and copied again every few minutes, and at the next start.
@@ -29,15 +36,21 @@ pub const MIRROR_DIR_SETTING: &str = "session_mirror_dir";
 /// Setting turning off the writing of the sessions into the folder ("false") while keeping the
 /// folder set: e.g. an admin computer that only reads it ("Importa da cartella").
 pub const MIRROR_WRITE_SETTING: &str = "session_mirror_write";
-/// Per-session setting with the name of the folder the session was last written to.
+/// Admin only: folder receiving the complete, unzipped copy of every session.
+pub const FULL_COPY_DIR_SETTING: &str = "session_full_copy_dir";
+/// Per-session setting with the name of the folder the session was last written to (admin copy).
 const FOLDER_SETTING_PREFIX: &str = "mirror_folder:";
+/// Per-session settings of the user archive: its file name, and the fingerprint of the content
+/// it was written from (rewritten only when the session changed: it contains the videos).
+const ARCHIVE_SETTING_PREFIX: &str = "mirror_archive:";
+const ARCHIVE_FINGERPRINT_PREFIX: &str = "mirror_archive_fp:";
 /// Marker file identifying which session a folder belongs to.
 pub(crate) const OWNER_MARKER: &str = ".flowcapture-session";
 /// Per-session setting marking sessions imported from another computer's folder (admin import):
 /// that folder belongs to the computer that recorded them, so they are not written back.
 pub(crate) const IMPORTED_SETTING_PREFIX: &str = "mirror_imported:";
-/// Extension of the full session archive written in every session folder.
-const BUNDLE_EXTENSION: &str = "flowcapture";
+/// Extension of the session archive written for every session.
+pub(crate) const BUNDLE_EXTENSION: &str = "flowcapture";
 /// Sub-folders whose content is fully managed (stale files are removed from them).
 const MANAGED_DIRS: [&str; 3] = ["screenshots", "media", "exports"];
 
@@ -237,13 +250,49 @@ pub fn mirror_write_enabled(db: &Database) -> bool {
     db.get_setting(MIRROR_WRITE_SETTING).ok().flatten().as_deref() != Some("false")
 }
 
-/// Folder the sessions are written to: `None` when no folder is set or writing is turned off.
+/// Folder the sessions are written to: for an admin the "Copia completa" folder, for a user the
+/// sessions folder. `None` when no folder is set or writing is turned off.
 pub fn mirror_write_root(db: &Database) -> Option<PathBuf> {
-    if mirror_write_enabled(db) {
+    if admin_mode() {
+        full_copy_root(db)
+    } else if mirror_write_enabled(db) {
         mirror_root(db)
     } else {
         None
     }
+}
+
+/// Admin "Copia completa" folder (set also when not in admin mode, used only in admin mode).
+pub fn full_copy_root(db: &Database) -> Option<PathBuf> {
+    non_empty_setting(db, FULL_COPY_DIR_SETTING).map(PathBuf::from)
+}
+
+fn non_empty_setting(db: &Database, key: &str) -> Option<String> {
+    db.get_setting(key)
+        .ok()
+        .flatten()
+        .map(|value| value.trim().to_string())
+        .filter(|value| !value.is_empty())
+}
+
+#[cfg(not(test))]
+fn admin_mode() -> bool {
+    crate::commands::is_admin_mode()
+}
+
+#[cfg(test)]
+thread_local! {
+    static TEST_ADMIN_MODE: std::cell::Cell<bool> = const { std::cell::Cell::new(false) };
+}
+
+#[cfg(test)]
+fn admin_mode() -> bool {
+    TEST_ADMIN_MODE.with(std::cell::Cell::get)
+}
+
+#[cfg(test)]
+pub(crate) fn set_test_admin_mode(admin: bool) {
+    TEST_ADMIN_MODE.with(|mode| mode.set(admin));
 }
 
 /// Sessions folder proposed on a new installation, chosen when the app is built through the
@@ -329,21 +378,12 @@ fn expand_env_vars(text: &str, lookup: impl Fn(&str) -> Option<String>) -> Strin
 
 /// Folder set in Settings, also when writing into it is turned off (the admin import reads it).
 pub fn mirror_root(db: &Database) -> Option<PathBuf> {
-    db.get_setting(MIRROR_DIR_SETTING)
-        .ok()
-        .flatten()
-        .map(|value| value.trim().to_string())
-        .filter(|value| !value.is_empty())
-        .map(PathBuf::from)
+    non_empty_setting(db, MIRROR_DIR_SETTING).map(PathBuf::from)
 }
 
-/// Writes (or refreshes) the mirror folder of one session. Returns the folder, or `None` when
-/// mirroring is off, the session no longer exists, is still being recorded or was imported from
-/// another computer's folder.
-///
-/// Besides the unzipped files, the folder holds `<folder name>.flowcapture`: the complete archive
-/// of the session, which "Importa Sessione" rebuilds on any computer. It is rewritten only when
-/// something in the session changed (it can be large: it contains the videos).
+/// Writes (or refreshes) the copy of one session: the `.flowcapture` archive (user) or the
+/// unzipped folder (admin). Returns its path, or `None` when there is nothing to write to, the
+/// session no longer exists, is still being recorded or was imported from another computer.
 #[cfg(test)]
 pub fn sync_session(db: &Database, session_id: &str) -> Result<Option<PathBuf>> {
     sync_session_with_progress(db, session_id, None)
@@ -369,14 +409,18 @@ fn sync_session_with_progress(
     std::fs::create_dir_all(&root)
         .with_context(|| format!("cannot create the sessions folder {}", root.display()))?;
 
-    let folder = resolve_folder(db, &root, session_id, &session.title)?;
-    std::fs::create_dir_all(&folder)?;
-    std::fs::write(folder.join(OWNER_MARKER), session_id)?;
-
-    // The entries first, to know how much has to be copied (progress shown to the user).
+    // The entries first: to know how much has to be copied (progress shown to the user) and
+    // whether anything changed.
     let mut plan = PlanSink::default();
     let manifest = write_session_bundle(db, session_id, &mut plan)?;
     let manifest_bytes = serde_json::to_vec_pretty(&manifest)?;
+    if !admin_mode() {
+        return write_archive(db, &root, session_id, &session.title, &plan, &manifest_bytes, progress).map(Some);
+    }
+
+    let folder = resolve_folder(db, &root, session_id, &session.title)?;
+    std::fs::create_dir_all(&folder)?;
+    std::fs::write(folder.join(OWNER_MARKER), session_id)?;
     if let Some(progress) = progress {
         let to_copy = plan
             .files
@@ -409,8 +453,6 @@ fn sync_session_with_progress(
         sink.add_bytes("documentation.md", normalized.as_bytes())?;
     }
     sink.prune_stale_files()?;
-    let changed = sink.changed;
-    write_full_bundle(&plan, &manifest_bytes, &folder, changed, progress)?;
     Ok(Some(folder))
 }
 
@@ -418,26 +460,22 @@ fn file_size(path: &Path) -> u64 {
     path.metadata().map(|m| m.len()).unwrap_or(0)
 }
 
-/// Keeps `<folder name>.flowcapture` in the session folder up to date (and removes the archives
-/// left with an older name after a rename).
-fn write_full_bundle(
+/// Keeps `<root>/<title>.flowcapture` up to date: rewritten only when the session changed (or the
+/// file is missing), renamed with the session.
+fn write_archive(
+    db: &Database,
+    root: &Path,
+    session_id: &str,
+    title: &str,
     plan: &PlanSink,
     manifest: &[u8],
-    folder: &Path,
-    changed: bool,
     progress: Option<&SyncProgress>,
-) -> Result<()> {
-    let folder_name = folder.file_name().and_then(|n| n.to_str()).unwrap_or("Sessione");
-    let target = folder.join(format!("{folder_name}.{BUNDLE_EXTENSION}"));
-    for entry in std::fs::read_dir(folder)? {
-        let path = entry?.path();
-        let is_bundle = path.extension().is_some_and(|ext| ext.eq_ignore_ascii_case(BUNDLE_EXTENSION));
-        if is_bundle && path != target {
-            let _ = std::fs::remove_file(&path);
-        }
-    }
-    if !changed && target.is_file() {
-        return Ok(());
+) -> Result<PathBuf> {
+    let target = resolve_archive(db, root, session_id, title)?;
+    let fingerprint_key = format!("{ARCHIVE_FINGERPRINT_PREFIX}{session_id}");
+    let fingerprint = plan_fingerprint(plan, manifest);
+    if target.is_file() && db.get_setting(&fingerprint_key)?.as_deref() == Some(fingerprint.as_str()) {
+        return Ok(target);
     }
     if let Some(progress) = progress {
         let total = plan.files.iter().map(|(_, source)| file_size(source)).sum::<u64>() + manifest.len() as u64;
@@ -449,7 +487,101 @@ fn write_full_bundle(
         let _ = std::fs::remove_file(&partial);
         return Err(err).context("writing the .flowcapture archive in the sessions folder");
     }
-    replace_file(&partial, &target)
+    replace_file(&partial, &target)?;
+    db.set_setting(&fingerprint_key, &fingerprint)?;
+    Ok(target)
+}
+
+/// What the archive is made of: the manifest (without its export time) and name, size and
+/// modification time of every file.
+fn plan_fingerprint(plan: &PlanSink, manifest: &[u8]) -> String {
+    let mut parts = vec![comparable_manifest(manifest).map(|value| value.to_string()).unwrap_or_default()];
+    for (entry, source) in &plan.files {
+        let meta = source.metadata().ok();
+        let modified = meta
+            .as_ref()
+            .and_then(|meta| meta.modified().ok())
+            .and_then(|time| time.duration_since(std::time::UNIX_EPOCH).ok())
+            .map(|time| time.as_millis())
+            .unwrap_or(0);
+        parts.push(format!("{entry}:{}:{modified}", meta.map(|meta| meta.len()).unwrap_or(0)));
+    }
+    for (entry, bytes) in &plan.bytes {
+        parts.push(format!("{entry}:{:016x}", fnv1a(bytes)));
+    }
+    format!("{:016x}", fnv1a(parts.join("\n").as_bytes()))
+}
+
+/// FNV-1a 64: stable across builds (the fingerprints are stored in the database).
+pub(crate) fn fnv1a(bytes: &[u8]) -> u64 {
+    let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
+    for byte in bytes {
+        hash ^= u64::from(*byte);
+        hash = hash.wrapping_mul(0x0000_0100_0000_01b3);
+    }
+    hash
+}
+
+/// Archive of the session under `root`, named after its title. Renames the existing archive when
+/// the title changed; never takes over an archive of another session.
+fn resolve_archive(db: &Database, root: &Path, session_id: &str, title: &str) -> Result<PathBuf> {
+    let desired = folder_name_for_title(title);
+    let setting_key = format!("{ARCHIVE_SETTING_PREFIX}{session_id}");
+    let previous = non_empty_setting(db, &setting_key)
+        .map(|name| root.join(name))
+        .filter(|path| archive_owned_by(path, session_id));
+
+    let archive_name = |name: &str| format!("{name}.{BUNDLE_EXTENSION}");
+    let target = match previous {
+        Some(current) if current.file_name().and_then(|n| n.to_str()) == Some(archive_name(&desired).as_str()) => {
+            current
+        }
+        Some(current) => {
+            let target = free_archive(root, &desired, session_id);
+            if target == current {
+                current
+            } else {
+                match std::fs::rename(&current, &target) {
+                    Ok(()) => target,
+                    // Open somewhere (e.g. being imported): keep the old name, the next change retries.
+                    Err(err) => {
+                        crate::logger::write_entry(
+                            "WARN",
+                            "mirror",
+                            &format!("cannot rename {} to {}: {err}", current.display(), target.display()),
+                        );
+                        current
+                    }
+                }
+            }
+        }
+        None => free_archive(root, &desired, session_id),
+    };
+
+    if let Some(name) = target.file_name().and_then(|n| n.to_str()) {
+        db.set_setting(&setting_key, name)?;
+    }
+    Ok(target)
+}
+
+/// `desired.flowcapture`, or `desired (2).flowcapture`… skipping archives of other sessions.
+fn free_archive(root: &Path, desired: &str, session_id: &str) -> PathBuf {
+    let mut counter = 1;
+    loop {
+        let name = if counter == 1 { desired.to_string() } else { format!("{desired} ({counter})") };
+        let candidate = root.join(format!("{name}.{BUNDLE_EXTENSION}"));
+        if !candidate.exists() || archive_owned_by(&candidate, session_id) {
+            return candidate;
+        }
+        counter += 1;
+    }
+}
+
+fn archive_owned_by(path: &Path, session_id: &str) -> bool {
+    super::bundle::read_bundle_manifest(path)
+        .ok()
+        .and_then(|bytes| serde_json::from_slice::<serde_json::Value>(&bytes).ok())
+        .is_some_and(|manifest| manifest["session"]["id"].as_str() == Some(session_id))
 }
 
 /// `manifest.json` without the fields that change at every write (`exported_at`): two manifests
@@ -747,12 +879,93 @@ mod tests {
         assert!(same_path(Path::new(r"\\SRV\x\"), Path::new(r"\\srv\X")));
     }
 
+    fn session_with_screenshot(db: &Database, title: &str, shot_id: &str) -> String {
+        let session = db.create_session(Some(title.into())).unwrap();
+        db.finish_session(&session.id, None, 5).unwrap();
+        let shots_dir = db.session_dir(&session.id).join("screenshots");
+        std::fs::create_dir_all(&shots_dir).unwrap();
+        let shot_path = shots_dir.join(format!("{shot_id}.png"));
+        image::RgbaImage::from_pixel(4, 4, image::Rgba([9, 8, 7, 255])).save(&shot_path).unwrap();
+        db.insert_screenshot(&crate::storage::models::Screenshot {
+            id: shot_id.into(),
+            session_id: session.id.clone(),
+            path: shot_path.to_string_lossy().to_string(),
+            timestamp_ms: 1,
+            trigger: Some("click".into()),
+            selected: 1,
+            click_x: Some(3),
+            click_y: Some(2),
+            annotations_json: None,
+        })
+        .unwrap();
+        session.id
+    }
+
+    fn modified(path: &Path) -> std::time::SystemTime {
+        path.metadata().unwrap().modified().unwrap()
+    }
+
     #[test]
-    fn mirrors_a_session_and_follows_renames() {
-        let data = temp_dir("data");
-        let root = temp_dir("root");
+    fn user_writes_only_the_archive() {
+        set_test_admin_mode(false);
+        let data = temp_dir("user-data");
+        let other = temp_dir("user-other");
+        let root = temp_dir("user-root");
         let db = Database::new(data.clone()).unwrap();
         db.set_setting(MIRROR_DIR_SETTING, &root.to_string_lossy()).unwrap();
+        let session = session_with_screenshot(&db, "Primo titolo", "shot-u");
+
+        let archive = sync_session(&db, &session).unwrap().unwrap();
+        assert_eq!(archive, root.join("Primo titolo.flowcapture"));
+        let names: Vec<_> = std::fs::read_dir(&root).unwrap().map(|e| e.unwrap().file_name()).collect();
+        assert_eq!(names, vec![std::ffi::OsString::from("Primo titolo.flowcapture")]);
+
+        // Unchanged session: the archive is not rewritten.
+        let written_at = modified(&archive);
+        std::thread::sleep(Duration::from_millis(20));
+        sync_session(&db, &session).unwrap();
+        assert_eq!(modified(&archive), written_at);
+
+        // Changed and renamed session: the archive is rewritten under the new name.
+        db.save_documentation(&session, "# Guida nuova\n", "[]", "[]").unwrap();
+        db.update_session_title(&session, "Secondo titolo").unwrap();
+        let renamed = sync_session(&db, &session).unwrap().unwrap();
+        assert_eq!(renamed, root.join("Secondo titolo.flowcapture"));
+        assert!(!archive.exists());
+
+        // Another session with the same title never takes the archive over.
+        let twin = session_with_screenshot(&db, "Secondo titolo", "shot-t");
+        assert_eq!(sync_session(&db, &twin).unwrap().unwrap(), root.join("Secondo titolo (2).flowcapture"));
+
+        // With writing turned off nothing is written (and the folder stays set).
+        db.set_setting(MIRROR_WRITE_SETTING, "false").unwrap();
+        assert!(sync_session(&db, &session).unwrap().is_none());
+        assert_eq!(mirror_root(&db), Some(root.clone()));
+
+        // The archive rebuilds the session on another computer, same id.
+        let target = Database::new(other.clone()).unwrap();
+        let imported = crate::storage::bundle::import_session_bundle(&target, &renamed).unwrap();
+        assert_eq!(imported.id, session);
+        assert!(imported.documentation_md.unwrap().contains("nuova"));
+        assert_eq!(target.list_screenshots(&imported.id).unwrap().len(), 1);
+
+        drop(db);
+        drop(target);
+        let _ = std::fs::remove_dir_all(data);
+        let _ = std::fs::remove_dir_all(other);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
+    #[test]
+    fn mirrors_a_session_and_follows_renames() {
+        set_test_admin_mode(true);
+        let data = temp_dir("data");
+        let root = temp_dir("root");
+        let share = temp_dir("admin-share");
+        let db = Database::new(data.clone()).unwrap();
+        // The admin only reads the sessions folder: the sessions go to the full copy folder.
+        db.set_setting(MIRROR_DIR_SETTING, &share.to_string_lossy()).unwrap();
+        db.set_setting(FULL_COPY_DIR_SETTING, &root.to_string_lossy()).unwrap();
 
         let session = db.create_session(Some("Primo titolo".into())).unwrap();
         db.finish_session(&session.id, None, 12).unwrap();
@@ -793,29 +1006,32 @@ mod tests {
         let second = sync_session(&db, &other.id).unwrap().unwrap();
         assert_eq!(second, root.join("Secondo titolo (2)"));
 
-        // With writing turned off the folder is left alone (and stays set).
-        db.set_setting(MIRROR_WRITE_SETTING, "false").unwrap();
+        // Without a full copy folder nothing is written.
+        db.set_setting(FULL_COPY_DIR_SETTING, "").unwrap();
         assert!(sync_session(&db, &session.id).unwrap().is_none());
-        assert_eq!(mirror_root(&db), Some(root.clone()));
-        db.set_setting(MIRROR_WRITE_SETTING, "true").unwrap();
+        db.set_setting(FULL_COPY_DIR_SETTING, &root.to_string_lossy()).unwrap();
 
         // Deleted screenshots disappear from the copy.
         db.delete_screenshot("shot-a").unwrap();
         sync_session(&db, &session.id).unwrap();
         assert!(!renamed.join("screenshots/a.png").exists());
+        assert!(std::fs::read_dir(&share).unwrap().next().is_none(), "nothing written to the sessions folder");
 
+        set_test_admin_mode(false);
         drop(db);
         let _ = std::fs::remove_dir_all(data);
         let _ = std::fs::remove_dir_all(root);
+        let _ = std::fs::remove_dir_all(share);
     }
 
     #[test]
     fn mirrored_folder_imports_as_the_same_session() {
+        set_test_admin_mode(true);
         let data = temp_dir("source");
         let other = temp_dir("other");
         let root = temp_dir("share");
         let db = Database::new(data.clone()).unwrap();
-        db.set_setting(MIRROR_DIR_SETTING, &root.to_string_lossy()).unwrap();
+        db.set_setting(FULL_COPY_DIR_SETTING, &root.to_string_lossy()).unwrap();
 
         let session = db.create_session(Some("Sessione condivisa".into())).unwrap();
         db.finish_session(&session.id, None, 5).unwrap();
@@ -856,12 +1072,7 @@ mod tests {
         let again = crate::storage::bundle::import_session_bundle(&target, &folder.join("manifest.json")).unwrap();
         assert_ne!(again.id, session.id);
 
-        // So does the complete .flowcapture archive written in the folder.
-        let archive = folder.join("Sessione condivisa.flowcapture");
-        let from_archive = crate::storage::bundle::import_session_bundle(&target, &archive).unwrap();
-        assert_eq!(from_archive.title, "Sessione condivisa");
-        assert_eq!(target.list_screenshots(&from_archive.id).unwrap().len(), 1);
-
+        set_test_admin_mode(false);
         drop(db);
         drop(target);
         let _ = std::fs::remove_dir_all(data);

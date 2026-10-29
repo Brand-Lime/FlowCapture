@@ -57,7 +57,7 @@ export function MirrorProgress({ status }: { status: MirrorStatus }) {
     status.phase === "files"
       ? "Copia dei file"
       : status.phase === "archive"
-        ? "Creazione dell'archivio .flowcapture"
+        ? "Salvataggio del file .flowcapture"
         : status.syncing
           ? "Preparazione"
           : null;

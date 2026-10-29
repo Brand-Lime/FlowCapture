@@ -1972,13 +1972,64 @@ pub async fn import_sessions_from_mirror(
 /// Re-copies every session into the sessions folder (e.g. after files were removed by hand).
 #[tauri::command]
 pub fn sync_session_mirror(state: State<'_, Arc<AppState>>) -> Result<usize, String> {
-    if crate::storage::mirror::mirror_root(&state.db).is_none() {
-        return Err("Nessuna cartella sessioni configurata".to_string());
-    }
-    if !crate::storage::mirror::mirror_write_enabled(&state.db) {
-        return Err("La scrittura nella cartella sessioni è disattivata (Impostazioni → Cartella sessioni)".to_string());
+    if crate::storage::mirror::mirror_write_root(&state.db).is_none() {
+        return Err(if is_admin_mode() {
+            "Nessuna cartella \"Copia completa\" configurata (Impostazioni)".to_string()
+        } else if crate::storage::mirror::mirror_root(&state.db).is_none() {
+            "Nessuna cartella sessioni configurata".to_string()
+        } else {
+            "La scrittura nella cartella sessioni è disattivata (Impostazioni → Cartella sessioni)".to_string()
+        });
     }
     crate::storage::mirror::sync_all(&state.db, &state.mirror).map_err(|err| err.to_string())
+}
+
+/// Admin only: folder receiving the complete, unzipped copy of every session.
+#[tauri::command]
+pub fn get_session_full_copy_dir(state: State<'_, Arc<AppState>>) -> Option<String> {
+    crate::storage::mirror::full_copy_root(&state.db).map(|p| p.to_string_lossy().to_string())
+}
+
+/// Admin only: sets (or clears, with `None`) the "Copia completa" folder and copies every session
+/// into it. Returns how many sessions are being written.
+#[tauri::command]
+pub async fn set_session_full_copy_dir(
+    state: State<'_, Arc<AppState>>,
+    path: Option<String>,
+) -> Result<usize, String> {
+    if !is_admin_mode() {
+        return Err("Funzione riservata agli amministratori (avvia FlowCapture con --admin)".to_string());
+    }
+    let state = Arc::clone(&state);
+    tauri::async_runtime::spawn_blocking(move || {
+        let value = path.map(|p| p.trim().to_string()).unwrap_or_default();
+        if !value.is_empty() {
+            std::fs::create_dir_all(&value).map_err(|err| format!("Cartella non utilizzabile: {err}"))?;
+        }
+        state
+            .db
+            .set_setting(crate::storage::mirror::FULL_COPY_DIR_SETTING, &value)
+            .map_err(|err| err.to_string())?;
+        if value.is_empty() {
+            return Ok(0);
+        }
+        crate::storage::mirror::sync_all(&state.db, &state.mirror).map_err(|err| err.to_string())
+    })
+    .await
+    .map_err(|err| err.to_string())?
+}
+
+#[tauri::command]
+pub async fn open_session_full_copy_dir(state: State<'_, Arc<AppState>>) -> Result<(), String> {
+    let root = crate::storage::mirror::full_copy_root(&state.db)
+        .ok_or_else(|| "Nessuna cartella \"Copia completa\" configurata".to_string())?;
+    tauri::async_runtime::spawn_blocking(move || {
+        std::fs::create_dir_all(&root).map_err(|err| format!("Cartella non raggiungibile ({err})."))?;
+        open_in_file_manager(&root);
+        Ok(())
+    })
+    .await
+    .map_err(|err| err.to_string())?
 }
 
 /// Sessions that could not be copied to the sessions folder yet (e.g. network share offline).

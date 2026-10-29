@@ -395,6 +395,10 @@ export const api = {
   setSessionMirrorDir: (path: string | null) => invoke<number>("set_session_mirror_dir", { path }),
   syncSessionMirror: () => invoke<number>("sync_session_mirror"),
   openSessionMirrorDir: () => invoke<void>("open_session_mirror_dir"),
+  /** Admin only: folder with the complete, unzipped copy of every session. */
+  getSessionFullCopyDir: () => invoke<string | null>("get_session_full_copy_dir"),
+  setSessionFullCopyDir: (path: string | null) => invoke<number>("set_session_full_copy_dir", { path }),
+  openSessionFullCopyDir: () => invoke<void>("open_session_full_copy_dir"),
   getSessionMirrorStatus: () => invoke<MirrorStatus>("get_session_mirror_status"),
   checkSessionMirrorDir: () => invoke<MirrorDirCheck>("check_session_mirror_dir"),
   isAdminMode: () => invoke<boolean>("is_admin_mode"),
