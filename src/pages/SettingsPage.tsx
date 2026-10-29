@@ -17,7 +17,7 @@ export function SettingsPage() {
   const [providers, setProviders] = useState<ProviderConfig[]>([]);
   const [redactionEnabled, setRedactionEnabled] = useState(true);
   const [recordAudio, setRecordAudio] = useState(false);
-  const [transcribeAudio, setTranscribeAudio] = useState(true);
+  const [transcribeAudio, setTranscribeAudio] = useState(false);
   const [highlightClicks, setHighlightClicks] = useState(true);
   const [selectedMonitorId, setSelectedMonitorId] = useState("");
   const [monitors, setMonitors] = useState<MonitorInfo[]>([]);
@@ -119,7 +119,7 @@ export function SettingsPage() {
     setProviders(nextProviders);
     setRedactionEnabled((nextSetting ?? "true") === "true");
     setRecordAudio(nextRecordAudio === "true");
-    setTranscribeAudio((nextTranscribe ?? "true") === "true");
+    setTranscribeAudio(nextTranscribe === "true");
     setHighlightClicks((nextHighlight ?? "true") === "true");
     setCaptureAllEvents(nextCaptureAll === "true");
     setDedupeScreenshots((nextDedupe ?? "true") === "true");

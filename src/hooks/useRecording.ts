@@ -74,7 +74,7 @@ export function useRecording() {
   const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
   const [selectedMicId, setSelectedMicIdState] = useState<string>("");
   const [recordAudio, setRecordAudioState] = useState<boolean>(false);
-  const [transcribeAudio, setTranscribeAudioState] = useState<boolean>(true);
+  const [transcribeAudio, setTranscribeAudioState] = useState<boolean>(false);
   const [highlightClicks, setHighlightClicksState] = useState<boolean>(true);
   // Microphone failure during the current recording, shown in the HUD.
   const [micProblem, setMicProblem] = useState<string | null>(null);
@@ -273,7 +273,7 @@ export function useRecording() {
         if (savedMonitor) setSelectedMonitorIdState(savedMonitor);
         if (savedMic) setSelectedMicIdState(savedMic);
         if (savedRecord !== null) setRecordAudioState(savedRecord === "true");
-        if (savedTranscribe !== null) setTranscribeAudioState(savedTranscribe !== "false");
+        if (savedTranscribe !== null) setTranscribeAudioState(savedTranscribe === "true");
         if (savedHighlight !== null) setHighlightClicksState(savedHighlight !== "false");
       })
       .catch(() => undefined);

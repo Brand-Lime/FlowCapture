@@ -131,14 +131,14 @@ fn browser_defs() -> Vec<BrowserDef> {
             app_path: "opera.exe",
             data_dir: roaming.as_ref().map(|dir| dir.join(r"Opera Software\Opera Stable")),
         },
-        BrowserDef {
-            id: "firefox",
-            name: "Mozilla Firefox",
-            engine: Engine::Firefox,
-            executables: in_programs(r"Mozilla Firefox\firefox.exe"),
-            app_path: "firefox.exe",
-            data_dir: roaming.as_ref().map(|dir| dir.join(r"Mozilla\Firefox")),
-        },
+        // BrowserDef {
+        //     id: "firefox",
+        //     name: "Mozilla Firefox",
+        //     engine: Engine::Firefox,
+        //     executables: in_programs(r"Mozilla Firefox\firefox.exe"),
+        //     app_path: "firefox.exe",
+        //     data_dir: roaming.as_ref().map(|dir| dir.join(r"Mozilla\Firefox")),
+        // },
     ]
 }
 
